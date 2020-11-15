@@ -1,0 +1,108 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "case_name": {
+            "type": "string"
+        },
+        "case_id": {
+            "type": "string"
+        },
+        "year": {
+            "type": "number"
+        },
+        "cause": {
+            "type": "string"
+        },
+        "trial_procedure": {
+            "type": "string",
+            "enum": [
+                "一审",
+                "二审",
+                "三审",
+                "终审"
+            ]
+        },
+        "case_type": {
+            "type": "string",
+            "enum": [
+                "民事",
+                "刑事",
+                "行政",
+                "国家赔偿",
+                "申诉",
+                "再审"
+            ]
+        },
+        "court": {
+            "type": "string"
+        },
+        "document_type": {
+            "type": "string",
+            "enum": [
+                "判决书"
+            ]
+        },
+        "judge": {
+            "type": "string"
+        },
+        "clerk": {
+            "type": "string"
+        },
+        "plaintiff_info": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "plaintiff": {
+                        "type": "string"
+                    },
+                    "plaintiff_agent": {
+                        "type": "string"
+                    },
+                    "law_firm": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "defendant_info": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "defendant": {
+                        "type": "string"
+                    },
+                    "defendant_agent": {
+                        "type": "string"
+                    },
+                    "law_firm": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "case_summary": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "controversy": {
+                        "type": "string"
+                    },
+                    "judgement": {
+                        "type": "string",
+                        "enum": [
+                            "支持",
+                            "不支持"
+                        ]
+                    },
+                    "cause": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
