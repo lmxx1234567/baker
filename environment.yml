@@ -87,4 +87,3 @@ dependencies:
     - pdfminer-six==20201018
     - pycparser==2.20
     - sortedcontainers==2.3.0
-prefix: /home/lmxx1234567/miniconda3/envs/baker
