@@ -10,10 +10,12 @@ If you have create a environment by environment.yml. Use the following command t
 ```shell
 # Activate your env
 conda activate baker
+
 # Update env by file
 conda env update -f environment.yml
 ```
 ## Source tree
+- case_parsers -- `Parser of cases`
 - data
     - formatted -- `Formated data output`
     - raw -- `Raw data input`
