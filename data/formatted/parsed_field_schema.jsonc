@@ -40,7 +40,9 @@
         "document_type": {
             "type": "string",
             "enum": [
-                "判决书"
+                "判决书",
+                "裁定书",
+                "调解书"
             ]
         },
         "judge": {
