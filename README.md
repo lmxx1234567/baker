@@ -14,6 +14,11 @@ conda activate baker
 # Update env by file
 conda env update -f environment.yml
 ```
+## Usage
+```shell
+baker.py {casename,caseid,year} filepath
+```
+
 ## Source tree
 - case_parsers -- `Parser of cases`
 - data
