@@ -6,6 +6,13 @@ Use the following command to set up the environment.
 ```shell
 conda env create --file environment.yml [-p /path/to/save/env]
 ```
+If you have create a environment by environment.yml. Use the following command to update your env.
+```shell
+# Activate your env
+conda activate baker
+# Update env by file
+conda env update -f environment.yml
+```
 ## Source tree
 - data
     - formatted -- `Formated data output`
