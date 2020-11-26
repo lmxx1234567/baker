@@ -79,18 +79,28 @@ dependencies:
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.5=h9ceee32_0
   - pip:
+    - astroid==2.4.2
+    - autopep8==1.5.4
     - cffi==1.14.3
     - chardet==3.0.4
     - cryptography==3.2.1
     - idna==2.10
+    - isort==5.6.4
     - jieba==0.42.1
+    - lazy-object-proxy==1.4.3
+    - mccabe==0.6.1
     - numpy==1.16.4
     - objgraph==3.5.0
     - paddlepaddle-tiny==1.6.1
     - pdfminer-six==20201018
     - protobuf==3.14.0
+    - pycodestyle==2.6.0
     - pycparser==2.20
+    - pylint==2.6.0
     - python-graphviz==0.15
     - requests==2.25.0
     - sortedcontainers==2.3.0
+    - toml==0.10.2
+    - typed-ast==1.4.1
     - urllib3==1.26.2
+    - wrapt==1.12.1
