@@ -46,8 +46,6 @@ dependencies:
   - mkl_fft=1.2.0=py36h23d657b_0
   - mkl_random=1.1.1=py36h0573a6f_0
   - ncurses=6.2=he6710b0_1
-  - numpy=1.19.2=py36h54aff64_0
-  - numpy-base=1.19.2=py36hfa32c7d_0
   - olefile=0.46=py36_0
   - openssl=1.1.1h=h7b6447c_0
   - pandas=1.1.3=py36he6710b0_0
@@ -84,6 +82,15 @@ dependencies:
     - cffi==1.14.3
     - chardet==3.0.4
     - cryptography==3.2.1
+    - idna==2.10
+    - jieba==0.42.1
+    - numpy==1.16.4
+    - objgraph==3.5.0
+    - paddlepaddle-tiny==1.6.1
     - pdfminer-six==20201018
+    - protobuf==3.14.0
     - pycparser==2.20
+    - python-graphviz==0.15
+    - requests==2.25.0
     - sortedcontainers==2.3.0
+    - urllib3==1.26.2
