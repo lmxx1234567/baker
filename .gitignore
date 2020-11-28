@@ -1,2 +1,2 @@
-data/raw/*
-*.pyc
+data/raw/
+__pycache__/
