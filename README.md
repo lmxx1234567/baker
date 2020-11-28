@@ -24,6 +24,7 @@ baker.py {casename,caseid,year} filepath
 - data
     - formatted -- `Formated data output`
     - raw -- `Raw data input`
+- test -- `Unit test cases`
 ## Contribute
 * Add dependent
 
