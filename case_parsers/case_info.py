@@ -36,3 +36,10 @@ def get_cause(lines: [str]) -> str:
                 if cause in line:
                     return cause
         return 'Not found'
+
+
+def get_trial_procedure(lines: [str]) -> str:
+    case_name = get_case_name(lines)
+    for trial_procedure in schema['properties']['trial_procedure']['enum']:
+        if trial_procedure in case_name:
+            return trial_procedure
