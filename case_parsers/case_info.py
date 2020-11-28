@@ -25,3 +25,14 @@ def get_year(lines: [str]) -> str:
     if matchObj is not None:
         return matchObj.group(1)
     return 'Not found'
+
+
+def get_cause(lines: [str]) -> str:
+    with open('data/formatted/causes') as f:
+        causes = f.readlines()
+        causes = [cause[:-1] for cause in causes]
+        for line in lines:
+            for cause in causes:
+                if cause in line:
+                    return cause
+        return 'Not found'
