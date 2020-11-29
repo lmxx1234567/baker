@@ -7,7 +7,7 @@ from case_parsers import case_info
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Legal document parser')
     parser.add_argument(
-        'attr', help='Which attributes to resolve', choices=['case_name', 'case_id', 'year', 'cause', 'trial_procedure'])
+        'attr', help='Which attributes to resolve', choices=['case_name', 'case_id', 'year', 'cause', 'trial_procedure', 'case_type'])
     parser.add_argument('filepath', help='Path to legal document')
     args = parser.parse_args()
     lines = []
@@ -24,3 +24,5 @@ if __name__ == "__main__":
         print(case_info.get_cause(lines))
     elif args.attr == 'trial_procedure':
         print(case_info.get_trial_procedure(lines))
+    elif args.attr == 'case_type':
+        print(case_info.get_case_type(lines))
