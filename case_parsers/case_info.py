@@ -1,4 +1,5 @@
 import re
+import csv
 
 from . import schema
 
@@ -43,3 +44,14 @@ def get_trial_procedure(lines: [str]) -> str:
     for trial_procedure in schema['properties']['trial_procedure']['enum']:
         if trial_procedure in case_name:
             return trial_procedure
+
+
+def get_case_type(lines: [str]) -> str:
+    case_id = get_case_id(lines)
+    with open('data/formatted/case_type.csv') as f:
+        reader = csv.reader(f,)
+        for row in reader:
+            matchObj = re.search(r'\d('+row[1]+r')\d', case_id)
+            if matchObj is not None:
+                return row[0]
+    return 'Not found'

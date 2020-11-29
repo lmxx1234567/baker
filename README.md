@@ -16,7 +16,17 @@ conda env update -f environment.yml
 ```
 ## Usage
 ```shell
-baker.py {casename,caseid,year} filepath
+usage: baker.py [-h] attr filepath
+
+Legal document parser
+
+positional arguments:
+  attr                  Selection {case_name,case_id,year,cause,trial_procedure,case_type}
+                        Which attributes to resolve
+  filepath              Path to legal document
+
+optional arguments:
+  -h, --help            show this help message and exit
 ```
 
 ## Source tree
