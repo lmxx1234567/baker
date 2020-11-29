@@ -39,6 +39,10 @@ optional arguments:
 * Add dependent
 
     After add dependent by `conda` or `pip`. Use `conda env export | grep -v "^prefix: " > environment.yml` to export your env configuration to a file.
+* Add unittest case
+
+    Use [unittest](https://docs.python.org/3/library/unittest.html) module to write unit test cases. Each file in the test folder corresponds to a test module which contains a set of test case defined by methods.
+
 
 **TBC**
 
