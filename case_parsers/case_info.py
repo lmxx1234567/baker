@@ -55,3 +55,11 @@ def get_case_type(lines: [str]) -> str:
             if matchObj is not None:
                 return row[0]
     return 'Not found'
+
+
+def get_court(lines: [str]) -> str:
+    for line in lines:
+        matchObj = re.search(r'(\S{1,10}(自治)?[省州市县区])+.{1,5}法院', line)
+        if matchObj is not None:
+            return matchObj.group()
+    return 'Not found'
