@@ -63,3 +63,11 @@ def get_court(lines: [str]) -> str:
         if matchObj is not None:
             return matchObj.group()
     return 'Not found'
+
+
+def get_document_type(lines: [str]) -> str:
+    for line in lines:
+        for dtype in schema['properties']['document_type']['enum']:
+            if dtype in line:
+                return dtype
+    return 'Not found'
