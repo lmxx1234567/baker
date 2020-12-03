@@ -2,7 +2,7 @@
     "$schema": "./parsed_field_schema.jsonc",
     "case_name": "隋文江与邸宝家、中国平安财产保险股份有限公司黑龙江分公司机动车交通事故责任纠纷一审民事判决书",
     "case_id": "（2019）黑0521民初2092号",
-    "year": 2019,
+    "year": "2019",
     "cause": "机动车交通事故责任纠纷",
     "trial_procedure": "一审",
     "case_type": "民事一审案件",

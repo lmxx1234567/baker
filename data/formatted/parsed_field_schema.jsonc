@@ -9,7 +9,7 @@
             "type": "string"
         },
         "year": {
-            "type": "number"
+            "type": "string"
         },
         "cause": {
             "type": "string"
