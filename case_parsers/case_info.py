@@ -71,3 +71,17 @@ def get_document_type(lines: [str]) -> str:
             if dtype in line:
                 return dtype
     return 'Not found'
+
+
+def get_judge(lines: [str]) -> str:
+    for line in reversed(lines):
+        if '审判员' in line:
+            return re.sub(r'(审判员)|[　\s]+', '', line)
+    return 'Not found'
+
+
+def get_clerk(lines: [str]) -> str:
+    for line in reversed(lines):
+        if '书记员' in line:
+            return re.sub(r'(书记员)|[　\s]+', '', line)
+    return 'Not found'
