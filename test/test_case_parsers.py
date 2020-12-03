@@ -16,6 +16,14 @@ class TestCaseParsers(unittest.TestCase):
         court = case_info.get_court(test.lines)
         self.assertEqual(court, test.fields["court"])
 
+    def test_get_judge(self):
+        judge = case_info.get_judge(test.lines)
+        self.assertEqual(judge, test.fields["judge"])
+
+    def test_get_clerk(self):
+        clerk = case_info.get_clerk(test.lines)
+        self.assertEqual(clerk, test.fields["clerk"])
+
 
 if __name__ == '__main__':
     unittest.main()
