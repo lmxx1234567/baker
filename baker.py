@@ -4,10 +4,13 @@ import json
 
 from case_parsers import case_info
 
+attrs = ['all', 'case_name', 'case_id', 'year', 'cause', 'trial_procedure',
+         'case_type', 'court', 'document_type', 'judge', 'clerk', 'case_summary']
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Legal document parser')
     parser.add_argument(
-        'attr', help='Which attributes to resolve', choices=['all', 'case_name', 'case_id', 'year', 'cause', 'trial_procedure', 'case_type', 'court', 'document_type', 'judge', 'clerk','case_summary'])
+        'attr', help='Which attributes to resolve', choices=attrs)
     parser.add_argument('filepath', help='Path to legal document')
     args = parser.parse_args()
     lines = []
@@ -16,16 +19,12 @@ if __name__ == "__main__":
 
     if args.attr == 'all':
         field_dict = {}
-        field_dict['case_name'] = case_info.get_case_name(lines)
-        field_dict['case_id'] = case_info.get_case_id(lines)
-        field_dict['year'] = case_info.get_year(lines)
-        field_dict['cause'] = case_info.get_cause(lines)
-        field_dict['trial_procedurel'] = case_info.get_trial_procedure(lines)
-        field_dict['case_type'] = case_info.get_case_type(lines)
-        field_dict['court'] = case_info.get_court(lines)
-        field_dict['document_type'] = case_info.get_document_type(lines)
-        field_dict['judge'] = case_info.get_judge(lines)
-        field_dict['clerk'] = case_info.get_clerk(lines)
+        for attr in attrs[1:]:
+            module = __import__('case_parsers', fromlist=[
+                                'case_info']).case_info
+            func = getattr(module, 'get_'+attr)
+            ret = func(lines)
+            field_dict[attr] = ret
         print(json.dumps(field_dict, ensure_ascii=False))
     elif args.attr == 'case_name':
         print(case_info.get_case_name(lines))
@@ -49,4 +48,3 @@ if __name__ == "__main__":
         print(case_info.get_clerk(lines))
     elif args.attr == 'case_summary':
         print(case_info.get_case_summary(lines))
-    
