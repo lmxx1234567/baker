@@ -102,6 +102,9 @@
                     },
                     "cause": {
                         "type": "string"
+                    },
+                    "basis": {
+                        "type": "string"
                     }
                 }
             }
