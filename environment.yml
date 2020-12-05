@@ -99,7 +99,6 @@ dependencies:
     - pycodestyle==2.6.0
     - pycparser==2.20
     - pylint==2.6.0
-    - python-graphviz==0.15
     - requests==2.25.0
     - sortedcontainers==2.3.0
     - toml==0.10.2
