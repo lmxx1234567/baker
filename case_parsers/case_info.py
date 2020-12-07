@@ -4,6 +4,11 @@ from typing import List
 
 from . import schema, similar
 
+import jieba
+import jieba.posseg as pseg
+
+jieba.enable_paddle()
+
 
 def get_case_name(lines: List[str]) -> str:
     for line in lines:
@@ -89,6 +94,86 @@ def get_clerk(lines: List[str]) -> str:
         if '书记员' in line:
             return re.sub(r'(书记员)|[　\s]+', '', line)
     return 'Not found'
+
+
+def get_plaintiff_info(lines: List[str]) -> List[dict]:
+    find = False
+    plaintiff_info = []
+    for line in lines:
+        if '委托诉讼代理人' in line:
+            find = True
+            line = re.sub(r'委托诉讼代理人[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            plaintiff_agent = law_firm = ''
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    plaintiff_agent = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for seg in seg_list:
+                if seg.flag == 'ORG':
+                    law_firm = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for pinfo in plaintiff_info:
+                if pinfo['plaintiff_agent'] == '':
+                    pinfo['plaintiff_agent'] = plaintiff_agent
+                if pinfo['law_firm'] == '':
+                    pinfo['law_firm'] = law_firm
+        elif '原告' in line:
+            find = True
+            line = re.sub(r'原告[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    plaintiff_info.append({
+                        "plaintiff": re.sub(r'[，：；。]', '', seg.word),
+                        "plaintiff_agent": "",
+                        "law_firm": ""
+                    })
+                    break
+        else:
+            if find:
+                break
+    return plaintiff_info
+
+
+def get_defendant_info(lines: List[str]) -> List[dict]:
+    find = False
+    defendant_info = []
+    for line in lines:
+        if '委托诉讼代理人' in line:
+            find = True
+            line = re.sub(r'委托诉讼代理人[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            defendant_agent = law_firm = ''
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    defendant_agent = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for seg in seg_list:
+                if seg.flag == 'ORG':
+                    law_firm = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for pinfo in defendant_info:
+                if pinfo['defendant_agent'] == '':
+                    pinfo['defendant_agent'] = defendant_agent
+                if pinfo['law_firm'] == '':
+                    pinfo['law_firm'] = law_firm
+        elif '被告' in line:
+            find = True
+            line = re.sub(r'被告[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    defendant_info.append({
+                        "defendant": re.sub(r'[，：；。]', '', seg.word),
+                        "defendant_agent": "",
+                        "law_firm": ""
+                    })
+                    break
+        else:
+            if find:
+                break
+    return defendant_info
 
 
 def get_case_summary(lines: List[str]) -> List[dict]:
