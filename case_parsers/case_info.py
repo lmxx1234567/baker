@@ -103,7 +103,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             start_line_num = line_num
         if contro_num >= 0:
             matchObjs = re.finditer(
-                r'([〇一二三四五六七八九][、是]|[0-9]\.)(.+?)[.。;；]', lines[line_num])
+                r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[.。;；]', lines[line_num])
             for matchObj in matchObjs:
                 is_ch = basic.find(matchObj.group()[0])
                 num = is_ch if is_ch != -1 else int(matchObj.group()[0])
@@ -140,7 +140,8 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         cause_matchs = re.findall(r'本院认为.*[.。;；]', lines[line_num])
         for cause_match in cause_matchs:
             case_summary[contro_num]['cause'] += cause_match
-        basis_matchs = re.finditer('《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
+        basis_matchs = re.finditer(
+            '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
         for basis_match in basis_matchs:
             case_summary[contro_num]['basis'] += basis_match.group()
 
