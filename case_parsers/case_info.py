@@ -4,6 +4,11 @@ from typing import List
 
 from . import schema, similar
 
+import jieba
+import jieba.posseg as pseg
+
+jieba.enable_paddle()
+
 
 def get_case_name(lines: List[str]) -> str:
     for line in lines:
@@ -91,6 +96,86 @@ def get_clerk(lines: List[str]) -> str:
     return 'Not found'
 
 
+def get_plaintiff_info(lines: List[str]) -> List[dict]:
+    find = False
+    plaintiff_info = []
+    for line in lines:
+        if '委托诉讼代理人' in line:
+            find = True
+            line = re.sub(r'委托诉讼代理人[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            plaintiff_agent = law_firm = ''
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    plaintiff_agent = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for seg in seg_list:
+                if seg.flag == 'ORG':
+                    law_firm = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for pinfo in plaintiff_info:
+                if pinfo['plaintiff_agent'] == '':
+                    pinfo['plaintiff_agent'] = plaintiff_agent
+                if pinfo['law_firm'] == '':
+                    pinfo['law_firm'] = law_firm
+        elif '原告' in line:
+            find = True
+            line = re.sub(r'原告[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    plaintiff_info.append({
+                        "plaintiff": re.sub(r'[，：；。]', '', seg.word),
+                        "plaintiff_agent": "",
+                        "law_firm": ""
+                    })
+                    break
+        else:
+            if find:
+                break
+    return plaintiff_info
+
+
+def get_defendant_info(lines: List[str]) -> List[dict]:
+    find = False
+    defendant_info = []
+    for line in lines:
+        if '委托诉讼代理人' in line:
+            find = True
+            line = re.sub(r'委托诉讼代理人[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            defendant_agent = law_firm = ''
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    defendant_agent = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for seg in seg_list:
+                if seg.flag == 'ORG':
+                    law_firm = re.sub(r'[，：；。]', '', seg.word)
+                    break
+            for pinfo in defendant_info:
+                if pinfo['defendant_agent'] == '':
+                    pinfo['defendant_agent'] = defendant_agent
+                if pinfo['law_firm'] == '':
+                    pinfo['law_firm'] = law_firm
+        elif '被告' in line:
+            find = True
+            line = re.sub(r'被告[：:，,]', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    defendant_info.append({
+                        "defendant": re.sub(r'[，：；。]', '', seg.word),
+                        "defendant_agent": "",
+                        "law_firm": ""
+                    })
+                    break
+        else:
+            if find:
+                break
+    return defendant_info
+
+
 def get_case_summary(lines: List[str]) -> List[dict]:
     basic = '〇一二三四五六七八九'
     contro_num = -1
@@ -103,7 +188,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             start_line_num = line_num
         if contro_num >= 0:
             matchObjs = re.finditer(
-                r'([〇一二三四五六七八九][、是]|[0-9]\.)(.+?)[.。;；]', lines[line_num])
+                r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[.。;；]', lines[line_num])
             for matchObj in matchObjs:
                 is_ch = basic.find(matchObj.group()[0])
                 num = is_ch if is_ch != -1 else int(matchObj.group()[0])
@@ -140,7 +225,8 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         cause_matchs = re.findall(r'本院认为.*[.。;；]', lines[line_num])
         for cause_match in cause_matchs:
             case_summary[contro_num]['cause'] += cause_match
-        basis_matchs = re.finditer('《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
+        basis_matchs = re.finditer(
+            '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
         for basis_match in basis_matchs:
             case_summary[contro_num]['basis'] += basis_match.group()
 

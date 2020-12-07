@@ -1,7 +1,4 @@
-import sys
 import json
-
-sys.path.append("..")
 
 lines = []
 fields = {}
