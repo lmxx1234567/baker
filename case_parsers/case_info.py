@@ -181,23 +181,50 @@ def get_case_summary(lines: List[str]) -> List[dict]:
     contro_num = -1
     controversies: List[str] = []
     start_line_num = 0
+    ch_index = None
     for line_num in range(len(lines)):
         flag = False
         if '争议焦点' in lines[line_num]:
             contro_num = 0
             start_line_num = line_num
         if contro_num >= 0:
-            matchObjs = re.finditer(
-                r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[.。;；]', lines[line_num])
-            for matchObj in matchObjs:
-                is_ch = basic.find(matchObj.group()[0])
-                num = is_ch if is_ch != -1 else int(matchObj.group()[0])
-                if num > contro_num:
-                    controversies.append(matchObj.group(2))
-                    contro_num = len(controversies)
-                else:
-                    flag = True
-                    break
+            if ch_index is None:
+                matchObjs = re.finditer(
+                    r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[\.。;；？\?]', lines[line_num])
+                for matchObj in matchObjs:
+                    is_ch = basic.find(matchObj.group()[0])
+                    ch_index = is_ch != -1
+                    num = is_ch if ch_index else int(matchObj.group()[0])
+                    if num > contro_num:
+                        controversies.append(matchObj.group(2))
+                        contro_num = len(controversies)
+                    else:
+                        flag = True
+                        break
+            elif ch_index:
+                matchObjs = re.finditer(
+                    r'[〇一二三四五六七八九][、是](.*?)[\.。;；？\?]', lines[line_num])
+                for matchObj in matchObjs:
+                    is_ch = basic.find(matchObj.group()[0])
+                    num = is_ch
+                    if num > contro_num:
+                        controversies.append(matchObj.group(1))
+                        contro_num = len(controversies)
+                    else:
+                        flag = True
+                        break
+            else:
+                matchObjs = re.finditer(
+                    r'\d[\.、]([^\d].*?)[\.。;；？\?]', lines[line_num])
+                for matchObj in matchObjs:
+                    is_ch = basic.find(matchObj.group()[0])
+                    num = is_ch
+                    if num > contro_num:
+                        controversies.append(matchObj.group(1))
+                        contro_num = len(controversies)
+                    else:
+                        flag = True
+                        break
         if flag:
             break
 
