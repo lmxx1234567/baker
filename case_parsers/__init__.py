@@ -3,7 +3,7 @@ import json
 
 schema = {}
 
-with open('data/formatted/parsed_field_schema.jsonc') as f:
+with open('data/formatted/parsed_field_schema.jsonc', encoding='UTF-8') as f:
     schema = json.load(f)
 
 

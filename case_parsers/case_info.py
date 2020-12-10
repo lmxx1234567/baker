@@ -36,7 +36,7 @@ def get_year(lines: List[str]) -> str:
 
 
 def get_cause(lines: List[str]) -> str:
-    with open('data/formatted/causes') as f:
+    with open('data/formatted/causes', encoding='UTF-8') as f:
         causes = f.readlines()
         causes = [cause[:-1] for cause in causes]
         for line in lines:
@@ -55,7 +55,7 @@ def get_trial_procedure(lines: List[str]) -> str:
 
 def get_case_type(lines: List[str]) -> str:
     case_id = get_case_id(lines)
-    with open('data/formatted/case_type.csv') as f:
+    with open('data/formatted/case_type.csv', encoding='UTF-8') as f:
         reader = csv.reader(f,)
         for row in reader:
             matchObj = re.search(r'\d('+row[1]+r')\d', case_id)

@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument('filepath', help='Path to legal document')
     args = parser.parse_args()
     lines = []
-    with open(args.filepath) as f:
+    with open(args.filepath, encoding='UTF-8') as f:
         lines = f.readlines()
 
     if args.attr == 'all':
