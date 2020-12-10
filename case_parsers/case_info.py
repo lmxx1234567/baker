@@ -4,11 +4,6 @@ from typing import List
 
 from . import schema, similar
 
-import jieba
-import jieba.posseg as pseg
-
-jieba.enable_paddle()
-
 
 def get_case_name(lines: List[str]) -> str:
     for line in lines:
@@ -97,6 +92,10 @@ def get_clerk(lines: List[str]) -> str:
 
 
 def get_plaintiff_info(lines: List[str]) -> List[dict]:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
+    
     find = False
     plaintiff_info = []
     for line in lines:
