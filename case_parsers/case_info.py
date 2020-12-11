@@ -95,7 +95,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
-    
+
     find = False
     plaintiff_info = []
     for line in lines:
@@ -136,6 +136,10 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
 
 
 def get_defendant_info(lines: List[str]) -> List[dict]:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
+
     find = False
     defendant_info = []
     for line in lines:
@@ -231,8 +235,8 @@ def get_case_summary(lines: List[str]) -> List[dict]:
     case_summary = [{
         "controversy": controversy,
         "judgement": "",
-        "cause": "",
-        "basis": ""
+        "cause": [],
+        "basis": []
     } for controversy in controversies]
     approve = disapprove = 0
     for line_num in range(start_line_num+1, len(lines)):
@@ -250,11 +254,11 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         approve += len(disappr_match)
         cause_matchs = re.findall(r'本院认为.*[.。;；]', lines[line_num])
         for cause_match in cause_matchs:
-            case_summary[contro_num]['cause'] += cause_match
+            case_summary[contro_num]['cause'].append(cause_match)
         basis_matchs = re.finditer(
             '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
         for basis_match in basis_matchs:
-            case_summary[contro_num]['basis'] += basis_match.group()
+            case_summary[contro_num]['basis'].append(basis_match.group())
 
     case_summary[contro_num]["controversy"] = controversies[contro_num]
     case_summary[contro_num]['judgement'] = None if approve + \
