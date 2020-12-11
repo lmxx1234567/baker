@@ -1,0 +1,183 @@
+{
+    "case_name": {
+        "content": "隋文江与邸宝家、中国平安财产保险股份有限公司黑龙江分公司机动车交通事故责任纠纷一审民事判决书",
+        "line": 0,
+        "start": 0,
+        "stop": 46
+    },
+    "case_id": {
+        "content": "（2019）黑0521民初2092号",
+        "line": 1,
+        "start": 3,
+        "stop": 19
+    },
+    "year": {
+        "content": "2019",
+        "line": 1,
+        "start": 4,
+        "stop": 5
+    },
+    "cause": {
+        "content": "机动车交通事故责任纠纷",
+        "line": 0,
+        "start": 28,
+        "stop": 11
+    },
+    "trial_procedure": {
+        "content": "一审",
+        "line": 0,
+        "start": 39,
+        "stop": 2
+    },
+    "case_type": "民事一审案件",
+    "court": {
+        "content": "集贤县人民法院",
+        "line": 1,
+        "start": 48,
+        "stop": 8
+    },
+    "document_type": {
+        "content": "判决书",
+        "line": 0,
+        "start": 43,
+        "stop": 3
+    },
+    "judge": {
+        "content": "王晓冬",
+        "line": 36,
+        "start": 13,
+        "stop": 39
+    },
+    "clerk": "陈晶",
+    "plaintiff_info": [
+        {
+            "plaintiff": {
+                "content": "隋文江",
+                "line": 0,
+                "start": 0,
+                "stop": 3
+            },
+            "plaintiff_agent": {
+                "content": "韩耀东",
+                "line": 4,
+                "start": 16,
+                "stop": 7
+            },
+            "law_firm": {
+                "content": "黑龙江双峰律师事务所律师",
+                "line": 4,
+                "start": 20,
+                "stop": 16
+            }
+        }
+    ],
+    "defendant_info": [
+        {
+            "defendant": {
+                "content": "邸宝家",
+                "line": 0,
+                "start": 4,
+                "stop": 3
+            },
+            "defendant_agent": {
+                "content": "王成",
+                "line": 6,
+                "start": 16,
+                "stop": 8
+            },
+            "law_firm": {
+                "content": "黑龙江方帷律师事务所律师",
+                "line": 6,
+                "start": 19,
+                "stop": 18
+            }
+        },
+        {
+            "defendant": {
+                "content": "中国平安财产保险股份有限公司黑龙江分公司",
+                "line": 0,
+                "start": 8,
+                "stop": 20
+            },
+            "defendant_agent": {
+                "content": "李臻",
+                "line": 8,
+                "start": 12,
+                "stop": 10
+            },
+            "law_firm": {
+                "content": "该公司经理",
+                "line": 8,
+                "start": 15,
+                "stop": 13
+            }
+        }
+    ],
+    "case_summary": [
+        {
+            "controversy": {
+                "content": "司法鉴定意见效力",
+                "line": 14,
+                "start": 22,
+                "stop": 22
+            },
+            "judgement": null,
+            "cause": [],
+            "basis": []
+        },
+        {
+            "controversy": {
+                "content": "隋文江何种标准对待",
+                "line": 14,
+                "start": 33,
+                "stop": 23
+            },
+            "judgement": null,
+            "cause": [
+                {
+                    "content": "本院认为，机动车发生交通事故造成人身伤亡、财产损失的，由保险公司在交强险范围内予以赔偿，不足部分，由责任人赔偿。医疗费、伙食补助费，计15583.17元，交强险医疗费限额1万元，超出部分5583.17元由邸宝家赔偿。护理费、误工费、交通费、残疾赔偿金、精神抚慰金，计161366.30元，交强险死亡费限额11万元，超出部分51366.30元由邸宝家赔偿。财产损失650元，不超出交强险2000元限额。邸宝家提出的抗辩意见没有法律依据，不予采信。",
+                    "line": 29,
+                    "start": 8,
+                    "stop": 251
+                }
+            ],
+            "basis": [
+                {
+                    "content": "《中华人民共和国道路交通安全法》第七十六条、",
+                    "line": 29,
+                    "start": 232,
+                    "stop": 51
+                },
+                {
+                    "content": "《最高人民法院关于审理人身损害赔偿案件适用法律若干问题的解释》第十七条、第十八条、第十九条、第二十条、第二十一条、第二十二条、第二十三条、第二十四条、第二十五条、",
+                    "line": 29,
+                    "start": 254,
+                    "stop": 110
+                },
+                {
+                    "content": "《最高人民法院关于审理道路交通事故损害赔偿案件适用法律若干问题的解释》第十五条",
+                    "line": 29,
+                    "start": 335,
+                    "stop": 68
+                },
+                {
+                    "content": "《中华人民共和国民事诉讼法》第二百五十三条",
+                    "line": 33,
+                    "start": 33,
+                    "stop": 54
+                }
+            ]
+        },
+        {
+            "controversy": {
+                "content": "隋文江各项损失合理数额",
+                "line": 14,
+                "start": 45,
+                "stop": 25
+            },
+            "judgement": "",
+            "cause": [],
+            "basis": []
+        }
+    ]
+}
