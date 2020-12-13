@@ -24,9 +24,13 @@ class TestCaseParsers(unittest.TestCase):
         clerk = case_info.get_clerk(test.lines)
         self.assertEqual(clerk, test.fields["clerk"])
 
+    def test_get_claims(self):
+        claims = case_info.get_claims(test.lines)
+        print(claims)
+
     def test_get_case_summary(self):
         case_summary = case_info.get_case_summary(test.lines)
-        print (case_summary)
+        print(case_summary)
 
 
 if __name__ == '__main__':

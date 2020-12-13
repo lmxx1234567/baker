@@ -179,21 +179,82 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
     return defendant_info
 
 
-def get_case_summary(lines: List[str]) -> List[dict]:
+def get_claims(lines: List[str]) -> List[str]:
+    basic = '〇一二三四五六七八九'
+    claim_num = -1
+    claims: List[str] = []
+    ch_index = None
+    for line in lines:
+        if '诉讼请求' in line:
+            claim_num = 0
+            matchObj = re.search(r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
+            if matchObj is None:
+                sentences = line.split('。')
+                for sentence in sentences:
+                    if '诉讼请求' in sentence:
+                        matchObj = re.search(r'[:：](.+)', sentence)
+                        if matchObj is not None:
+                            claims = [matchObj.group(1)]
+                            return claims
+        if claim_num >= 0:
+            if ch_index is None:
+                matchObjs = re.finditer(
+                    r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[\.。;；？\?]', line)
+                for matchObj in matchObjs:
+                    is_ch = basic.find(matchObj.group()[0])
+                    ch_index = is_ch != -1
+                    num = is_ch if ch_index else int(matchObj.group()[0])
+                    if num > claim_num:
+                        claims.append(matchObj.group(2))
+                        claim_num = len(claims)
+                    else:
+                        return claims
+            elif ch_index:
+                matchObjs = re.finditer(
+                    r'[〇一二三四五六七八九][、是](.*?)[\.。;；？\?]', line)
+                for matchObj in matchObjs:
+                    is_ch = basic.find(matchObj.group()[0])
+                    num = is_ch
+                    if num > claim_num:
+                        claims.append(matchObj.group(1))
+                        claim_num = len(claims)
+                    else:
+                        return claims
+            else:
+                matchObjs = re.finditer(
+                    r'\d[\.、]([^\d].*?)[\.。;；？\?]', line)
+                for matchObj in matchObjs:
+                    is_ch = basic.find(matchObj.group()[0])
+                    num = is_ch
+                    if num > claim_num:
+                        claims.append(matchObj.group(1))
+                        claim_num = len(claims)
+                    else:
+                        return claims
+    return claims
+
+
+def get_controversies(lines: List[str]) -> List[str]:
     basic = '〇一二三四五六七八九'
     contro_num = -1
     controversies: List[str] = []
-    start_line_num = 0
     ch_index = None
-    for line_num in range(len(lines)):
-        flag = False
-        if '争议焦点' in lines[line_num]:
+    for line in lines:
+        if '争议焦点' in line:
             contro_num = 0
-            start_line_num = line_num
+            matchObj = re.search(r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
+            if matchObj is None:
+                sentences = line.split('。')
+                for sentence in sentences:
+                    if '争议焦点' in sentence:
+                        matchObj = re.search(r'[:：](.+)', sentence)
+                        if matchObj is not None:
+                            controversies = [matchObj.group(1)]
+                            return controversies
         if contro_num >= 0:
             if ch_index is None:
                 matchObjs = re.finditer(
-                    r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[\.。;；？\?]', lines[line_num])
+                    r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[\.。;；？\?]', line)
                 for matchObj in matchObjs:
                     is_ch = basic.find(matchObj.group()[0])
                     ch_index = is_ch != -1
@@ -202,11 +263,10 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                         controversies.append(matchObj.group(2))
                         contro_num = len(controversies)
                     else:
-                        flag = True
-                        break
+                        return controversies
             elif ch_index:
                 matchObjs = re.finditer(
-                    r'[〇一二三四五六七八九][、是](.*?)[\.。;；？\?]', lines[line_num])
+                    r'[〇一二三四五六七八九][、是](.*?)[\.。;；？\?]', line)
                 for matchObj in matchObjs:
                     is_ch = basic.find(matchObj.group()[0])
                     num = is_ch
@@ -214,11 +274,10 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                         controversies.append(matchObj.group(1))
                         contro_num = len(controversies)
                     else:
-                        flag = True
-                        break
+                        return controversies
             else:
                 matchObjs = re.finditer(
-                    r'\d[\.、]([^\d].*?)[\.。;；？\?]', lines[line_num])
+                    r'\d[\.、]([^\d].*?)[\.。;；？\?]', line)
                 for matchObj in matchObjs:
                     is_ch = basic.find(matchObj.group()[0])
                     num = is_ch
@@ -226,10 +285,22 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                         controversies.append(matchObj.group(1))
                         contro_num = len(controversies)
                     else:
-                        flag = True
-                        break
-        if flag:
-            break
+                        return controversies
+    return controversies
+
+
+def get_case_summary(lines: List[str]) -> List[dict]:
+    controversies = get_controversies(lines)
+    start_line_num = 0
+    if len(controversies) > 0:
+        for line_num, line in enumerate(lines):
+            if '争议焦点' in line:
+                start_line_num = line_num
+    else:
+        controversies = get_claims(lines)
+        for line_num, line in enumerate(lines):
+            if '诉讼请求' in line:
+                start_line_num = line_num
 
     contro_num = 0
     case_summary = [{
