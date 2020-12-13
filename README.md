@@ -21,7 +21,9 @@ usage: baker.py [-h] attr filepath
 Legal document parser
 
 positional arguments:
-  attr                  Selection {case_name,case_id,year,cause,trial_procedure,case_type}
+  attr                  Select {all,case_name,case_id,year,cause,
+                        trial_procedure,case_type,court,document_type,judge,clerk,
+                        plaintiff_info,defendant_info,case_summary}
                         Which attributes to resolve
   filepath              Path to legal document
 
@@ -34,7 +36,9 @@ optional arguments:
 - data
     - formatted -- `Formated data output`
     - raw -- `Raw data input`
+    - training -- `Data example for tarining`
 - test -- `Unit test cases`
+- utils -- `Useful tools`
 ## Contribute
 * Add dependent
 
