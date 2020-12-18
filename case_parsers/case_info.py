@@ -240,13 +240,21 @@ def get_controversies(lines: List[str]) -> List[str]:
     controversies: List[str] = []
     ch_index = None
     for line in lines:
-        if '争议焦点' in line:
+        if  ('争议焦点' in line) or \
+            ('争议的焦点' in line) or \
+            ('争议为' in line) or \
+            ('争议是' in line) or \
+            ('争议在于' in line) :
             contro_num = 0
             matchObj = re.search(r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
             if matchObj is None:
                 sentences = line.split('。')
                 for sentence in sentences:
-                    if '争议焦点' in sentence:
+                    if  ('争议焦点' in sentence) or \
+                        ('争议的焦点' in sentence) or \
+                        ('争议为' in sentence) or \
+                        ('争议是' in sentence) or \
+                        ('争议在于' in sentence) :
                         matchObj = re.search(r'[:：](.+)', sentence)
                         if matchObj is not None:
                             controversies = [matchObj.group(1)]
@@ -294,7 +302,11 @@ def get_case_summary(lines: List[str]) -> List[dict]:
     start_line_num = 0
     if len(controversies) > 0:
         for line_num, line in enumerate(lines):
-            if '争议焦点' in line:
+            if  ('争议焦点' in line) or \
+                ('争议的焦点' in line) or \
+                ('争议为' in line) or \
+                ('争议是' in line) or \
+                ('争议在于' in line) :
                 start_line_num = line_num
     else:
         controversies = get_claims(lines)
@@ -315,8 +327,8 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             if similar(lines[line_num], controversies[i]) > 0.8:
                 if i > contro_num:
                     case_summary[contro_num]["controversy"] = controversies[contro_num]
-                    case_summary[contro_num]['judgement'] = None if approve + \
-                        disapprove == 0 else approve/(approve+disapprove)
+                    case_summary[contro_num]['judgement'] = str(None if approve + \
+                        disapprove == 0 else approve/(approve+disapprove))
                     approve = disapprove = 0
                     contro_num = i
         appr_match = re.findall(r'予以(支持)|(认可)', lines[line_num])
@@ -332,6 +344,6 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             case_summary[contro_num]['basis'].append(basis_match.group())
 
     case_summary[contro_num]["controversy"] = controversies[contro_num]
-    case_summary[contro_num]['judgement'] = None if approve + \
-        disapprove == 0 else approve/(approve+disapprove)
+    case_summary[contro_num]['judgement'] = str(None if approve + \
+        disapprove == 0 else approve/(approve+disapprove))
     return case_summary
