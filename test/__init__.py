@@ -3,7 +3,7 @@ import json
 lines = []
 fields = {}
 
-with open('data/raw/case1.txt', encoding='UTF-8') as f:
+with open('data/raw/case2.txt', encoding='UTF-8') as f:
     lines = f.readlines()
 
 with open('data/formatted/parsed_field.jsonc', encoding='UTF-8') as f:

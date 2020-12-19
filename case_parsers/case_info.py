@@ -312,7 +312,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         "basis": []
     } for controversy in controversies]
     approve = disapprove = 0
-    last_contro = -1
+    last_contro = 0
     for line_num in range(start_line_num+1, len(lines)):
         for i in range(contro_num, len(controversies)):
             if similar(lines[line_num], controversies[i]) > 0.8:
