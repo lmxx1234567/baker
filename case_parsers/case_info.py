@@ -184,7 +184,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         "defendant_agent": "",
                         "law_firm": ""
                     })
-                    IsPerson =1
+                    IsPerson = 1
                     break
             for seg in seg_list:
                 if IsPerson == 0 and seg.flag == 'ORG':
