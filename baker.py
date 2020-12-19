@@ -20,9 +20,12 @@ if __name__ == "__main__":
     if args.attr == 'all':
         field_dict = {}
         for attr in attrs[1:]:
-            func = getattr(case_info, 'get_'+attr)
-            ret = func(lines)
-            field_dict[attr] = ret
+            try:
+                func = getattr(case_info, 'get_'+attr)
+                ret = func(lines)
+                field_dict[attr] = ret
+            except Exception:
+                field_dict[attr] = None
         print(json.dumps(field_dict, ensure_ascii=False))
     elif args.attr in attrs:
         func = getattr(case_info, 'get_'+args.attr)
