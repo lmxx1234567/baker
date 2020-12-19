@@ -36,6 +36,9 @@ def process_one(input_str,index):
     wenshu_id_2 = d_sub_res['wenshu_id']
     # Time
     wenshu_time = d_sub_res['sentence_date']
+    # 打印文件名称
+    print(wenshu_name)
+    print(wenshu_id_2)
     # 写文件
     # with open(output_path + "/"+wenshu_name+".txt", 'w', encoding="utf-8") as txt_file:
     with open(output_path + "/"+str(index)+".txt", 'w', encoding="utf-8") as txt_file:
@@ -74,7 +77,7 @@ def process_one(input_str,index):
     # with open(output_path + "/"+wenshu_name + ".json", 'w', encoding="utf-8") as json_file:
     with open(output_path + "/"+str(index) + ".json", 'w', encoding="utf-8") as json_file:
         json_file.write(json_str)
-    print(wenshu_name)
+    
     return 1
 
 
@@ -102,7 +105,7 @@ if __name__ == "__main__":
             process_one(x,num)
             num = num + 1
         except Exception as e:
-            print(num)
+            # print(num)
             print(e)
         # break
         # if num == 150:
