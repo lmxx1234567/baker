@@ -117,12 +117,23 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                     pinfo['plaintiff_agent'] = plaintiff_agent
                 if pinfo['law_firm'] == '':
                     pinfo['law_firm'] = law_firm
+        # Have a name, choose the name first; Otherwise select organization
         elif '原告' in line:
             find = True
+            IsPerson = 0
             line = re.sub(r'原告[：:，,]', '', line)
             seg_list = pseg.cut(line, use_paddle=True)
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
+                    plaintiff_info.append({
+                        "plaintiff": re.sub(r'[，：；。]', '', seg.word),
+                        "plaintiff_agent": "",
+                        "law_firm": ""
+                    })
+                    IsPerson = 1
+                    break
+            for seg in seg_list:
+                if IsPerson == 0 and seg.flag == 'ORG':
                     plaintiff_info.append({
                         "plaintiff": re.sub(r'[，：；。]', '', seg.word),
                         "plaintiff_agent": "",
