@@ -295,11 +295,8 @@ def get_case_summary(lines: List[str]) -> List[dict]:
     start_line_num = 0
     if len(controversies) > 0:
         for line_num, line in enumerate(lines):
-            if ('争议焦点' in line) or \
-                ('争议的焦点' in line) or \
-                ('争议为' in line) or \
-                ('争议是' in line) or \
-                    ('争议在于' in line):
+            keyObj = re.search(r'争议(的?焦点|为|是|在于)', line)
+            if keyObj is not None:
                 start_line_num = line_num
     else:
         controversies = get_claims(lines)
