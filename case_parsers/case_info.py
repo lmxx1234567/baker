@@ -300,7 +300,7 @@ def get_controversies(lines: List[str]) -> List[str]:
                 sentences = line.split('。')
                 for sentence in sentences:
                     if keyObj.group() in sentence:
-                        matchObj = re.search(r'[:：](.+)', sentence)
+                        matchObj = re.search(r'[:：是](.+)', sentence)
                         if matchObj is not None:
                             controversies = [matchObj.group(1)]
                             return controversies
