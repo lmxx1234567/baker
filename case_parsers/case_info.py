@@ -330,7 +330,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         disappr_match = re.findall(r'不予?(支持|认可)', lines[line_num])
         approve += len(appr_match)
         disapprove += len(disappr_match)
-        if contro_num == last_contro:
+        if contro_num >= last_contro:
             cause_matchs = re.findall(r'本院认为.*[.。;；]', lines[line_num])
             for cause_match in cause_matchs:
                 case_summary[contro_num]['cause'].append(cause_match)
