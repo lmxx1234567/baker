@@ -310,6 +310,11 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         "basis": []
     } for controversy in controversies]
     approve = disapprove = 0
+    last_contro = -1
+    for line_num in range(start_line_num+1, len(lines)):
+        for i in range(contro_num, len(controversies)):
+            if similar(lines[line_num], controversies[i]) > 0.8:
+                last_contro = i
     for line_num in range(start_line_num+1, len(lines)):  # TODO: 可能在同一行就出现重要内容，需要判断
         for i in range(contro_num, len(controversies)):
             if similar(lines[line_num], controversies[i]) > 0.8:
@@ -323,9 +328,12 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         disappr_match = re.findall(r'不予?(支持|认可)', lines[line_num])
         approve += len(appr_match)
         disapprove += len(disappr_match)
-        cause_matchs = re.findall(r'本院认为.*[.。;；]', lines[line_num])
-        for cause_match in cause_matchs:
-            case_summary[contro_num]['cause'].append(cause_match)
+        if contro_num == last_contro:
+            cause_matchs = re.findall(r'本院认为.*[.。;；]', lines[line_num])
+            for cause_match in cause_matchs:
+                case_summary[contro_num]['cause'].append(cause_match)
+        else:
+            case_summary[contro_num]['cause'].append(lines[line_num].strip())
         basis_matchs = re.finditer(
             '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
         for basis_match in basis_matchs:
