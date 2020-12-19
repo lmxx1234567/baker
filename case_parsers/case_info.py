@@ -122,7 +122,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
             find = True
             IsPerson = 0
             line = re.sub(r'原告[：:，,]', '', line)
-            seg_list = pseg.cut(line, use_paddle=True)
+            seg_list = list(pseg.cut(line, use_paddle=True))
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
                     plaintiff_info.append({
@@ -174,10 +174,20 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                     pinfo['law_firm'] = law_firm
         elif '被告' in line:
             find = True
+            IsPerson = 0
             line = re.sub(r'被告[：:，,]', '', line)
-            seg_list = pseg.cut(line, use_paddle=True)
+            seg_list = list(pseg.cut(line, use_paddle=True))
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
+                    defendant_info.append({
+                        "defendant": re.sub(r'[，：；。]', '', seg.word),
+                        "defendant_agent": "",
+                        "law_firm": ""
+                    })
+                    IsPerson =1
+                    break
+            for seg in seg_list:
+                if IsPerson == 0 and seg.flag == 'ORG':
                     defendant_info.append({
                         "defendant": re.sub(r'[，：；。]', '', seg.word),
                         "defendant_agent": "",
