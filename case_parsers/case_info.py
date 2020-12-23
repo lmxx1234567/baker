@@ -215,7 +215,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                     if defendant_value == info['defendant']:
                         stop_searching = True
                         break
-                if not stop_searching :
+                if not stop_searching:
                     defendant_info.append({
                         "defendant": defendant_value,
                         "defendant_agent": "",
@@ -350,11 +350,13 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             keyObj = re.search(r'争议(的?焦点|为|是|在于)', line)
             if keyObj is not None:
                 start_line_num = line_num
+                break
     else:
         controversies = get_claims(lines)
         for line_num, line in enumerate(lines):
             if '诉讼请求' in line:
                 start_line_num = line_num
+                break
 
     contro_num = 0
     case_summary = [{
@@ -365,33 +367,36 @@ def get_case_summary(lines: List[str]) -> List[dict]:
     } for controversy in controversies]
     approve = disapprove = 0
     last_contro = 0
+    basic = '〇一二三四五六七八九'
     for line_num in range(start_line_num+1, len(lines)):
         for i in range(contro_num, len(controversies)):
-            if similar(lines[line_num], controversies[i]) > 0.8:
-                last_contro = i
+            matchObj = re.search('第('+basic[i+1]+'|'+str(i+1)+')个争议焦点', lines[line_num])
+            if similar(lines[line_num], controversies[i]) > 0.8 or matchObj is not None:
+                if i > last_contro:
+                    last_contro = i
     for line_num in range(start_line_num+1, len(lines)):  # TODO: 可能在同一行就出现重要内容，需要判断
         for i in range(contro_num, len(controversies)):
-            if similar(lines[line_num], controversies[i]) > 0.8:
+            qwx = similar(lines[line_num], "第个争议焦点")
+            # 根据争议焦点分段
+            matchObj = re.search('第('+basic[i+1]+'|'+str(i+1)+')个争议焦点', lines[line_num])
+            if similar(lines[line_num], controversies[i]) > 0.8 or matchObj is not None:
                 if i > contro_num:
                     case_summary[contro_num]["controversy"] = controversies[contro_num]
                     case_summary[contro_num]['judgement'] = str(None if approve +
                                                                 disapprove == 0 else round(approve/(approve+disapprove)))
                     approve = disapprove = 0
                     contro_num = i
-        appr_match = re.findall(r'予以(支持|认可)', lines[line_num])
-        disappr_match = re.findall(r'不予?(支持|认可)', lines[line_num])
+        appr_match = re.findall(r'予以(支持|认可|采纳)', lines[line_num])
+        disappr_match = re.findall(r'不予?(支持|认可|采纳)', lines[line_num])
         approve += len(appr_match)
         disapprove += len(disappr_match)
-        if contro_num >= last_contro:
-            cause_matchs = re.findall(r'本院认为.*[.。;；]', lines[line_num])
-            for cause_match in cause_matchs:
-                case_summary[contro_num]['cause'].append(cause_match)
-        else:
-            case_summary[contro_num]['cause'].append(lines[line_num].strip())
+        case_summary[contro_num]['cause'].append(lines[line_num].strip())
         basis_matchs = re.finditer(
             '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
         for basis_match in basis_matchs:
             case_summary[contro_num]['basis'].append(basis_match.group())
+        if contro_num >= last_contro:
+            break
 
     case_summary[contro_num]["controversy"] = controversies[contro_num]
     case_summary[contro_num]['judgement'] = str(None if approve +
