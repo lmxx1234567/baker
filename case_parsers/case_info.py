@@ -376,7 +376,6 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                     last_contro = i
     for line_num in range(start_line_num+1, len(lines)):  # TODO: 可能在同一行就出现重要内容，需要判断
         for i in range(contro_num, len(controversies)):
-            qwx = similar(lines[line_num], "第个争议焦点")
             # 根据争议焦点分段
             matchObj = re.search('第('+basic[i+1]+'|'+str(i+1)+')个争议焦点', lines[line_num])
             if similar(lines[line_num], controversies[i]) > 0.8 or matchObj is not None:
