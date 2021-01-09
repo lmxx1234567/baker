@@ -5,8 +5,8 @@ dependencies:
   - _libgcc_mutex=0.1
   - backcall=0.2.0
   - blas=1.0
-  - ca-certificates=2020.10.14
-  - certifi=2020.11.8
+  - ca-certificates=2020.12.8
+  - certifi=2020.12.5
   - cycler=0.10.0
   - dbus=1.13.18
   - decorator=4.4.2
@@ -46,18 +46,18 @@ dependencies:
   - mkl_fft=1.2.0
   - mkl_random=1.1.1
   - ncurses=6.2
-  - numpy-base=1.19.2
   - olefile=0.46
-  - openssl=1.1.1h
+  - openssl=1.1.1i
   - pandas=1.1.3
   - pandoc=2.11
   - pcre=8.44
   - pexpect=4.8.0
   - pickleshare=0.7.5
   - pillow=8.0.1
-  - pip=20.2.4
+  - pip=20.3.3
   - prompt-toolkit=3.0.8
   - ptyprocess=0.6.0
+  - pycodestyle=2.6.0
   - pygments=2.7.2
   - pypandoc=1.5
   - pyparsing=2.4.7
@@ -83,7 +83,6 @@ dependencies:
   - zstd=1.4.5
   - pip:
     - astroid==2.4.2
-    - autopep8==1.5.4
     - cffi==1.14.3
     - chardet==3.0.4
     - cryptography==3.2.1
@@ -97,10 +96,9 @@ dependencies:
     - paddlepaddle-tiny==1.6.1
     - pdfminer-six==20201018
     - protobuf==3.14.0
-    - pycodestyle==2.6.0
     - pycparser==2.20
     - pylint==2.6.0
-    - python-graphviz==0.15
+    - python-graphviz==0.16
     - requests==2.25.0
     - sortedcontainers==2.3.0
     - toml==0.10.2
