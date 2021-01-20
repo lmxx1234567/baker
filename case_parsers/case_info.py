@@ -4,6 +4,8 @@ from typing import List, Tuple
 
 from . import schema, similar
 
+PLAINTIFF_NAME = []
+
 
 def get_case_name(lines: List[str]) -> str:
     for line in lines:
@@ -50,11 +52,15 @@ def get_trial_procedure(lines: List[str]) -> str:
 
 def get_case_type(lines: List[str]) -> str:
     case_id = get_case_id(lines)
+    all_casetype = ['民事', '刑事', '行政', '经济', '非诉讼']
     with open('data/formatted/case_type.csv', encoding='UTF-8') as f:
         reader = csv.reader(f,)
         for row in reader:
             matchObj = re.search(r'\d('+row[1]+r')\d', case_id)
             if matchObj is not None:
+                for type in all_casetype:
+                    if type in row[0]:
+                        return type
                 return row[0]
     return 'Not found'
 
@@ -156,6 +162,8 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
         else:
             if find:
                 break
+    for element in plaintiff_info:
+        PLAINTIFF_NAME.append(element["plaintiff"])
     return plaintiff_info
 
 
@@ -228,6 +236,23 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                     break
                 else:
                     not_found += 1
+    get_plaintiff_info(lines)
+    for index, element in enumerate(defendant_info):
+        for plaintiff_tmp in PLAINTIFF_NAME:
+            if element["defendant"] in plaintiff_tmp or plaintiff_tmp in element["defendant"]:
+                defendant_info.pop(index)
+                break
+            if element["defendant_agent"] in plaintiff_tmp or plaintiff_tmp in element["defendant_agent"]:
+                element["defendant_agent"] = 'not found'
+            if element["law_firm"] in plaintiff_tmp or plaintiff_tmp in element["law_firm"]:
+                element["law_firm"] = 'not found'
+        if '保险' in element["defendant"]:
+            element["defendant_insurance"] = element["defendant"]
+            element["defendant_insurance_agent"] = element["defendant_agent"]
+            element["defendant_insurance_lawfirm"] = element["law_firm"]
+            del element["defendant"]
+            del element["defendant_agent"]
+            del element["law_firm"]
     return defendant_info
 
 
