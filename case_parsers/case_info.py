@@ -2,7 +2,8 @@ import re
 import csv
 from typing import List, Tuple
 
-from . import schema, similar
+from . import schema, similar, SEQ_MODEL_AVALIABLE
+from case_parsers.seq_match import seq_match
 
 PLAINTIFF_NAME = []
 
@@ -256,11 +257,11 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
     return defendant_info
 
 
-def get_claims(lines: List[str]) -> Tuple[List[str], int]:
+def get_claims(lines: List[str]) -> Tuple[List[dict], int]:
     basic = '〇一二三四五六七八九'
     claim_num = -1
     start_line_num = 0
-    claims = []
+    claims: List[dict] = []
     ch_index = None
     for line_num, line in enumerate(lines):
         keyObj = re.search(r'诉称|诉讼请求', line)
@@ -274,7 +275,10 @@ def get_claims(lines: List[str]) -> Tuple[List[str], int]:
                     if keyObj.group() in sentence:
                         matchObj = re.search(r'[:：是](.+)', sentence)
                         if matchObj is not None:
-                            claims = [matchObj.group(1)]
+                            claims = [{
+                                'con': matchObj.group(1),
+                                'line_num': line_num
+                            }]
                             return (claims, start_line_num)
         if claim_num >= 0:
             if ch_index is None:
@@ -285,7 +289,10 @@ def get_claims(lines: List[str]) -> Tuple[List[str], int]:
                     ch_index = is_ch != -1
                     num = is_ch if ch_index else int(matchObj.group()[0])
                     if num > claim_num:
-                        claims.append(matchObj.group(2))
+                        claims.append({
+                            'con': matchObj.group(2),
+                            'line_num': line_num
+                        })
                         claim_num = len(claims)
                     else:
                         return (claims, start_line_num)
@@ -296,7 +303,10 @@ def get_claims(lines: List[str]) -> Tuple[List[str], int]:
                     is_ch = basic.find(matchObj.group()[0])
                     num = is_ch
                     if num > claim_num:
-                        claims.append(matchObj.group(1))
+                        claims.append({
+                            'con': matchObj.group(1),
+                            'line_num': line_num
+                        })
                         claim_num = len(claims)
                     else:
                         return (claims, start_line_num)
@@ -306,18 +316,21 @@ def get_claims(lines: List[str]) -> Tuple[List[str], int]:
                 for matchObj in matchObjs:
                     num = int(matchObj.group()[0])
                     if num > claim_num:
-                        claims.append(matchObj.group(1))
+                        claims.append({
+                            'con': matchObj.group(1),
+                            'line_num': line_num
+                        })
                         claim_num = len(claims)
                     else:
                         return (claims, start_line_num)
     return (claims, start_line_num)
 
 
-def get_controversies(lines: List[str]) -> Tuple[List[str], int]:
+def get_controversies(lines: List[str]) -> Tuple[List[dict], int]:
     basic = '〇一二三四五六七八九'
     contro_num = -1
     start_line_num = 0
-    controversies: List[str] = []
+    controversies: List[dict] = []
     ch_index = None
     for line_num, line in enumerate(lines):
         keyObj = re.search(r'争议(的?焦点|为|是|在于)', line)
@@ -335,10 +348,16 @@ def get_controversies(lines: List[str]) -> Tuple[List[str], int]:
                                 matchObj = re.search(
                                     r'([〇一二三四五六七八九][、是]|\d[\.、])[^\d]', lines[line_num+1])
                                 if matchObj is None:
-                                    controversies = [lines[line_num+1]]
+                                    controversies = [{
+                                        'con': lines[line_num+1],
+                                        'line_num':line_num+1
+                                    }]
                                     return (controversies, start_line_num+1)
                             else:
-                                controversies = [matchObj.group(1)]
+                                controversies = [{
+                                    'con': matchObj.group(1),
+                                    'line_num': line_num
+                                }]
                                 return (controversies, start_line_num)
         if contro_num >= 0:
             if ch_index is None:
@@ -349,7 +368,10 @@ def get_controversies(lines: List[str]) -> Tuple[List[str], int]:
                     ch_index = is_ch != -1
                     num = is_ch if ch_index else int(matchObj.group()[0])
                     if num > contro_num:
-                        controversies.append(matchObj.group(2))
+                        controversies.append({
+                            'con': matchObj.group(2),
+                            'line_num': line_num
+                        })
                         contro_num = len(controversies)
                     else:
                         return (controversies, start_line_num)
@@ -360,7 +382,10 @@ def get_controversies(lines: List[str]) -> Tuple[List[str], int]:
                     is_ch = basic.find(matchObj.group()[0])
                     num = is_ch
                     if num > contro_num:
-                        controversies.append(matchObj.group(1))
+                        controversies.append({
+                            'con': matchObj.group(1),
+                            'line_num': line_num
+                        })
                         contro_num = len(controversies)
                     else:
                         return (controversies, start_line_num)
@@ -370,7 +395,10 @@ def get_controversies(lines: List[str]) -> Tuple[List[str], int]:
                 for matchObj in matchObjs:
                     num = int(matchObj.group()[0])
                     if num > contro_num:
-                        controversies.append(matchObj.group(1))
+                        controversies.append({
+                            'con': matchObj.group(1),
+                            'line_num': line_num
+                        })
                         contro_num = len(controversies)
                     else:
                         return (controversies, start_line_num)
@@ -382,13 +410,48 @@ def get_case_summary(lines: List[str]) -> List[dict]:
     if len(controversies) == 0:
         (controversies, start_line_num) = get_claims(lines)
 
-    contro_num = 0
     case_summary = [{
-        "controversy": controversy,
+        "controversy": controversy['con'],
         "judgement": "",
         "cause": [],
         "basis": []
     } for controversy in controversies]
+
+    if SEQ_MODEL_AVALIABLE:
+        start_line_num = 0
+        for contro_num, controversy in enumerate(controversies):
+            start_line_num = start_line_num if start_line_num > controversy[
+                'line_num'] else controversy['line_num']
+            max_line_num = 0
+            max_ratio = 0.0
+            for line_num, line in enumerate(lines):
+                if line_num > start_line_num:
+                    original_results = seq_match(controversy['con'], line)
+                    if line_num-start_line_num < 3 and original_results > 0.5:
+                        max_ratio = original_results
+                        max_line_num = line_num
+                        break
+                    elif original_results > max_ratio:
+                        max_ratio = original_results
+                        max_line_num = line_num
+            if max_line_num == 0:
+                continue
+            start_line_num = max_line_num
+            match_line = lines[max_line_num]
+            approve = disapprove = 0
+            appr_match = re.findall(r'予以(支持|认可|采纳)', match_line)
+            disappr_match = re.findall(r'不予?(支持|认可|采纳)', match_line)
+            approve += len(appr_match)
+            disapprove += len(disappr_match)
+            case_summary[contro_num]['judgement'] = str(None if approve +
+                                                        disapprove == 0 else round(approve/(approve+disapprove)))
+            case_summary[contro_num]['cause'].append(match_line.strip())
+            basis_matchs = re.finditer(
+                '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', match_line)
+            for basis_match in basis_matchs:
+                case_summary[contro_num]['basis'].append(basis_match.group())
+        return case_summary
+    contro_num = 0
     approve = disapprove = 0
     last_contro = 0
     basic = '〇一二三四五六七八九'
@@ -396,7 +459,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         for i in range(contro_num, len(controversies)):
             matchObj = re.search(
                 '第('+basic[i+1]+'|'+str(i+1)+')个争议焦点', lines[line_num])
-            if similar(lines[line_num], controversies[i]) > 0.8 or matchObj is not None:
+            if similar(lines[line_num], controversies[i]['con']) > 0.8 or matchObj is not None:
                 if i > last_contro:
                     last_contro = i
     for line_num in range(start_line_num+1, len(lines)):  # TODO: 可能在同一行就出现重要内容，需要判断
@@ -404,9 +467,9 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             # 根据争议焦点分段
             matchObj = re.search(
                 '第('+basic[i+1]+'|'+str(i+1)+')个争议焦点', lines[line_num])
-            if similar(lines[line_num], controversies[i]) > 0.8 or matchObj is not None:
+            if similar(lines[line_num], controversies[i]['con']) > 0.8 or matchObj is not None:
                 if i > contro_num:
-                    case_summary[contro_num]["controversy"] = controversies[contro_num]
+                    case_summary[contro_num]["controversy"] = controversies[contro_num]['con']
                     case_summary[contro_num]['judgement'] = str(None if approve +
                                                                 disapprove == 0 else round(approve/(approve+disapprove)))
                     approve = disapprove = 0
@@ -423,7 +486,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         if contro_num >= last_contro:
             break
 
-    case_summary[contro_num]["controversy"] = controversies[contro_num]
+    case_summary[contro_num]["controversy"] = controversies[contro_num]['con']
     case_summary[contro_num]['judgement'] = str(None if approve +
                                                 disapprove == 0 else round(approve/(approve+disapprove)))
     return case_summary
