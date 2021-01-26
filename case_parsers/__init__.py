@@ -1,5 +1,6 @@
 from difflib import SequenceMatcher
 import json
+from case_parsers.seq_match import check_seq_match_model
 
 schema = {}
 
@@ -14,3 +15,5 @@ def similar(string: str, sub: str) -> float:
     for match in matchs:
         size += match.size
     return size/len(sub)
+
+SEQ_MODEL_AVALIABLE = check_seq_match_model()
