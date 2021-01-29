@@ -1,9 +1,10 @@
 import re
 import csv
 from typing import List, Tuple
+import itertools
 
 from . import schema, similar, SEQ_MODEL_AVALIABLE
-from case_parsers.seq_match import seq_match
+from case_parsers.seq_match import seq_match, seq_match_multiple
 
 PLAINTIFF_NAME = []
 
@@ -418,38 +419,34 @@ def get_case_summary(lines: List[str]) -> List[dict]:
     } for controversy in controversies]
 
     if SEQ_MODEL_AVALIABLE:
-        start_line_num = 0
-        for contro_num, controversy in enumerate(controversies):
-            start_line_num = start_line_num if start_line_num > controversy[
-                'line_num'] else controversy['line_num']
-            max_line_num = 0
-            max_ratio = 0.0
-            for line_num, line in enumerate(lines):
-                if line_num > start_line_num:
-                    original_results = seq_match(controversy['con'], line)
-                    if line_num-start_line_num < 3 and original_results > 0.5:
-                        max_ratio = original_results
-                        max_line_num = line_num
-                        break
-                    elif original_results > max_ratio:
-                        max_ratio = original_results
-                        max_line_num = line_num
-            if max_line_num == 0:
-                continue
-            start_line_num = max_line_num
-            match_line = lines[max_line_num]
+        instances = [{
+            "con_input": item[0],
+            "cause_input":item[1]
+        }for item in itertools.product([controversy['con'] for controversy in controversies], lines)]
+        results = seq_match_multiple(instances)
+        results_it = iter(results)
+        line_scores = [max([{
+            'contro_num': contro_num,
+            'score': next(results_it)
+        } for contro_num in range(len(controversies))], key=lambda item: item['score'])
+            for line_num in range(len(lines)) if line_num > start_line_num]
+        for line_num, line_score in enumerate(line_scores):
+            if line_score['score'] > 0.5:
+                case_summary[line_score['contro_num']]['cause'].append(
+                    lines[line_num+start_line_num].strip())
+        for _, case in enumerate(case_summary):
             approve = disapprove = 0
-            appr_match = re.findall(r'予以(支持|认可|采纳)', match_line)
-            disappr_match = re.findall(r'不予?(支持|认可|采纳)', match_line)
-            approve += len(appr_match)
-            disapprove += len(disappr_match)
-            case_summary[contro_num]['judgement'] = str(None if approve +
-                                                        disapprove == 0 else round(approve/(approve+disapprove)))
-            case_summary[contro_num]['cause'].append(match_line.strip())
-            basis_matchs = re.finditer(
-                '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', match_line)
-            for basis_match in basis_matchs:
-                case_summary[contro_num]['basis'].append(basis_match.group())
+            for match_line in case['cause']:
+                appr_match = re.findall(r'予以(支持|认可|采纳)', match_line)
+                disappr_match = re.findall(r'不予?(支持|认可|采纳)', match_line)
+                approve += len(appr_match)
+                disapprove += len(disappr_match)
+                basis_matchs = re.finditer(
+                    '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', match_line)
+                for basis_match in basis_matchs:
+                    case['basis'].append(basis_match.group())
+            case['judgement'] = str(
+                None if approve + disapprove == 0 else round(approve/(approve+disapprove)))
         return case_summary
     contro_num = 0
     approve = disapprove = 0
