@@ -422,16 +422,16 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             instances = [{
                 "con_input": item[0],
                 "cause_input":item[1]
-            }for item in itertools.product([controversy['con'] for controversy in controversies], lines)]
+            }for item in itertools.product([controversy['con'] for controversy in controversies],
+                                           [line for line_num, line in enumerate(lines) if line_num >= start_line_num])]
             results = seq_match_multiple(instances)
             if len(results) == 0:
                 raise RuntimeError('seq_match no result')
-            results_it = iter(results)
             line_scores = [max([{
                 'contro_num': contro_num,
-                'score': next(results_it)
+                'score': results[contro_num*(len(lines)-start_line_num)+line_num-start_line_num]
             } for contro_num in range(len(controversies))], key=lambda item: item['score'])
-                for line_num in range(len(lines)) if line_num > start_line_num]
+                for line_num in range(len(lines)) if line_num >= start_line_num]
             for line_num, line_score in enumerate(line_scores):
                 if line_score['score'] > 0.5:
                     case_summary[line_score['contro_num']]['cause'].append(
@@ -451,7 +451,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                     None if approve + disapprove == 0 else round(approve/(approve+disapprove)))
             return case_summary
     except RuntimeError as e:
-        print('get_case_summary error:',e)
+        print('get_case_summary error:', e)
     contro_num = 0
     approve = disapprove = 0
     last_contro = 0
