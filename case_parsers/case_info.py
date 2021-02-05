@@ -134,6 +134,9 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         pinfo['plaintiff_agent'] = plaintiff_agent
                     if pinfo['law_firm'] == '':
                         pinfo['law_firm'] = law_firm
+            else:
+                plaintiff_info[-1]['plaintiff_agent'] = plaintiff_agent
+                plaintiff_info[-1]['law_firm'] = law_firm
         # Have a name, choose the name first; Otherwise select organization
         elif '原告' in line:
             find = True
@@ -218,6 +221,9 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         pinfo['defendant_agent'] = defendant_agent
                     if pinfo['law_firm'] == '':
                         pinfo['law_firm'] = law_firm
+            else:
+                defendant_info[-1]['defendant_agent'] = defendant_agent
+                defendant_info[-1]['law_firm'] = law_firm
         elif '被告' in line:
             find = True
             skip_it = False
