@@ -115,10 +115,19 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                 if seg.flag == 'PER' or seg.flag == 'nr':
                     plaintiff_agent = re.sub(r'[，：；。]', '', seg.word)
                     break
-            for seg in seg_list:
-                if seg.flag == 'ORG':
-                    law_firm = re.sub(r'[，：；。]', '', seg.word)
-                    break
+            # find law_firm
+            if "律师事务所" in line:
+                pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …（）]'
+                law_firms = re.split(pattern, line)
+                for salt in law_firms:
+                    if "律师事务所" in salt:
+                        law_firm = salt
+                        break
+            else:
+                for seg in seg_list:
+                    if seg.flag == 'ORG' and "律" in seg.word:  # 没准叫律所
+                        law_firm = re.sub(r'[，：；。]', '', seg.word)
+                        break
             if '共同' in line:
                 for pinfo in plaintiff_info:
                     if pinfo['plaintiff_agent'] == '':
@@ -203,11 +212,12 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                     if seg.flag == 'ORG' and "律" in seg.word:  # 没准叫律所
                         law_firm = re.sub(r'[，：；。]', '', seg.word)
                         break
-            for pinfo in defendant_info:
-                if pinfo['defendant_agent'] == '':
-                    pinfo['defendant_agent'] = defendant_agent
-                if pinfo['law_firm'] == '':
-                    pinfo['law_firm'] = law_firm
+            if '共同' in line:
+                for pinfo in defendant_info:
+                    if pinfo['defendant_agent'] == '':
+                        pinfo['defendant_agent'] = defendant_agent
+                    if pinfo['law_firm'] == '':
+                        pinfo['law_firm'] = law_firm
         elif '被告' in line:
             find = True
             skip_it = False
