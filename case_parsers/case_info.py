@@ -119,11 +119,12 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                 if seg.flag == 'ORG':
                     law_firm = re.sub(r'[，：；。]', '', seg.word)
                     break
-            for pinfo in plaintiff_info:
-                if pinfo['plaintiff_agent'] == '':
-                    pinfo['plaintiff_agent'] = plaintiff_agent
-                if pinfo['law_firm'] == '':
-                    pinfo['law_firm'] = law_firm
+            if '共同' in line:
+                for pinfo in plaintiff_info:
+                    if pinfo['plaintiff_agent'] == '':
+                        pinfo['plaintiff_agent'] = plaintiff_agent
+                    if pinfo['law_firm'] == '':
+                        pinfo['law_firm'] = law_firm
         # Have a name, choose the name first; Otherwise select organization
         elif '原告' in line:
             find = True
@@ -195,11 +196,11 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                 law_firms = re.split(pattern, line)
                 for salt in law_firms:
                     if "律师事务所" in salt:
-                        law_firm=salt
+                        law_firm = salt
                         break
             else:
                 for seg in seg_list:
-                    if seg.flag == 'ORG'  and "律" in seg.word:     #没准叫律所
+                    if seg.flag == 'ORG' and "律" in seg.word:  # 没准叫律所
                         law_firm = re.sub(r'[，：；。]', '', seg.word)
                         break
             for pinfo in defendant_info:
@@ -279,7 +280,7 @@ def get_claims(lines: List[str]) -> Tuple[List[dict], int]:
             # 变更诉讼请求的时候，从‘变更诉讼请求’后做下面的操作
             keyObj_0 = re.search(r'变更诉讼请求', line)
             if keyObj_0 is not None:
-                line=line.split("变更诉讼请求")[-1]
+                line = line.split("变更诉讼请求")[-1]
             # 新增部分结束
             start_line_num = line_num
             claim_num = 0
