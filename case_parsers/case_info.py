@@ -182,17 +182,26 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
         if stop_searching:
             break
         if similar(line, '委托诉讼代理人') > 0.5:
-            line = re.sub(r'委托诉讼代理人[：:，,]', '', line)
+            line = re.sub(r'委托诉讼代理人[：:，,]?', '', line)
             seg_list = pseg.cut(line, use_paddle=True)
             defendant_agent = law_firm = ''
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
-                    defendant_agent = re.sub(r'[，：；。]', '', seg.word)
+                    defendant_agent = re.sub(r'[，：；。（）]', '', seg.word)
                     break
-            for seg in seg_list:
-                if seg.flag == 'ORG':
-                    law_firm = re.sub(r'[，：；。]', '', seg.word)
-                    break
+            # find law_firm
+            if "律师事务所" in line:
+                pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …（）]'
+                law_firms = re.split(pattern, line)
+                for salt in law_firms:
+                    if "律师事务所" in salt:
+                        law_firm=salt
+                        break
+            else:
+                for seg in seg_list:
+                    if seg.flag == 'ORG'  and "律" in seg.word:     #没准叫律所
+                        law_firm = re.sub(r'[，：；。]', '', seg.word)
+                        break
             for pinfo in defendant_info:
                 if pinfo['defendant_agent'] == '':
                     pinfo['defendant_agent'] = defendant_agent
@@ -267,6 +276,11 @@ def get_claims(lines: List[str]) -> Tuple[List[dict], int]:
     for line_num, line in enumerate(lines):
         keyObj = re.search(r'诉称|诉讼请求', line)
         if keyObj is not None:
+            # 变更诉讼请求的时候，从‘变更诉讼请求’后做下面的操作
+            keyObj_0 = re.search(r'变更诉讼请求', line)
+            if keyObj_0 is not None:
+                line=line.split("变更诉讼请求")[-1]
+            # 新增部分结束
             start_line_num = line_num
             claim_num = 0
             matchObj = re.search(r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
