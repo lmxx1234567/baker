@@ -191,7 +191,10 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
     defendant_info = []
     not_found = 0
     stop_searching = False
+    pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …（）：]'
     for line in lines:
+        if find and "原告" in line and "本案" in line:
+            break
         if stop_searching:
             break
         if similar(line, '委托诉讼代理人') > 0.5:
@@ -201,10 +204,13 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
                     defendant_agent = re.sub(r'[，：；。（）]', '', seg.word)
+                    if len(defendant_agent) == 1:
+                        candidate = line[line.find(seg.word)+len(seg.word):]
+                        defendant_agent += re.split(pattern, candidate)[0]
+                        defendant_agent = defendant_agent[:3]
                     break
             # find law_firm
             if "律师事务所" in line:
-                pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …（）]'
                 law_firms = re.split(pattern, line)
                 for salt in law_firms:
                     if "律师事务所" in salt:
@@ -221,7 +227,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         pinfo['defendant_agent'] = defendant_agent
                     if pinfo['law_firm'] == '':
                         pinfo['law_firm'] = law_firm
-            else:
+            elif len(defendant_info) > 0:
                 defendant_info[-1]['defendant_agent'] = defendant_agent
                 defendant_info[-1]['law_firm'] = law_firm
         elif '被告' in line:
@@ -271,9 +277,9 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                 defendant_info.pop(index)
                 break
             if element["defendant_agent"] in plaintiff_tmp or plaintiff_tmp in element["defendant_agent"]:
-                element["defendant_agent"] = 'not found'
+                element["defendant_agent"] = '无'
             if element["law_firm"] in plaintiff_tmp or plaintiff_tmp in element["law_firm"]:
-                element["law_firm"] = 'not found'
+                element["law_firm"] = '无'
         if '保险' in element["defendant"]:
             element["defendant_insurance"] = element["defendant"]
             element["defendant_insurance_agent"] = element["defendant_agent"]
