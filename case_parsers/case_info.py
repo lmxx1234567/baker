@@ -277,9 +277,9 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                 defendant_info.pop(index)
                 break
             if element["defendant_agent"] in plaintiff_tmp or plaintiff_tmp in element["defendant_agent"]:
-                element["defendant_agent"] = '无'
+                element["defendant_agent"] = ''
             if element["law_firm"] in plaintiff_tmp or plaintiff_tmp in element["law_firm"]:
-                element["law_firm"] = '无'
+                element["law_firm"] = ''
         if '保险' in element["defendant"]:
             element["defendant_insurance"] = element["defendant"]
             element["defendant_insurance_agent"] = element["defendant_agent"]
