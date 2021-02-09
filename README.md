@@ -57,4 +57,4 @@ optional arguments:
     Use [unittest](https://docs.python.org/3/library/unittest.html) module to write unit test cases. Each file in the test folder corresponds to a test module which contains a set of test case defined by methods.
 * Development documents
 
-    For more developer documentation, see [this directory](md/).
+    For more developer documentation, see [this directory](docs/).
