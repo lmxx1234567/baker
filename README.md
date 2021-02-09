@@ -1,6 +1,13 @@
 # Baker
 ## Dependent
-[Anaconda](https://www.anaconda.com/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) with Python 3.6+
+[Anaconda](https://www.anaconda.com/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) with Python 3.6
+
+[jieba](https://github.com/fxsjy/jieba) Chinese word segmentation
+
+[paddle](https://github.com/PaddlePaddle/Paddle) NER model
+
+[urllib3](https://pypi.org/project/urllib3/) TFX Restful API Calling
+
 ## Getting start
 Use the following command to set up the environment.
 ```shell
@@ -34,10 +41,12 @@ optional arguments:
 ## Source tree
 - case_parsers -- `Parser of cases`
 - data
-    - formatted -- `Formated data output`
+    - formatted -- `Formatted constant`
     - raw -- `Raw data input`
     - training -- `Data example for tarining`
+- docs -- `Documents for developers`
 - test -- `Unit test cases`
+- training -- `Python notebooks for tarining `
 - utils -- `Useful tools`
 ## Contribute
 * Add dependent
@@ -46,7 +55,6 @@ optional arguments:
 * Add unittest case
 
     Use [unittest](https://docs.python.org/3/library/unittest.html) module to write unit test cases. Each file in the test folder corresponds to a test module which contains a set of test case defined by methods.
+* Development documents
 
-
-**TBC**
-
+    For more developer documentation, see [this directory](md/).
