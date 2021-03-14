@@ -109,7 +109,7 @@ def get_city_class(lines: List[str]):
     return city_class.iloc[0].to_dict()
 
 
-def get_hospital(lines: List[str]) -> str:
+def get_hospital(lines: List[str]) -> List[str]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
