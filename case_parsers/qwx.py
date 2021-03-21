@@ -139,4 +139,4 @@ def get_hospital(lines: List[str]) -> List[str]:
         if treatment_hospital:
             treatment_hospital = list(set(treatment_hospital))
             return treatment_hospital
-    return treatment_hospital
+    return treatment_hospital.append("None")
