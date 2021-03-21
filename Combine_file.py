@@ -5,7 +5,6 @@ import argparse
 import json
 import re
 import os
-from case_parsers import case_info
 from fee_field import *
 import json
 from HTMLParser import HTMLParser
@@ -14,6 +13,7 @@ from sys import stderr
 from traceback import print_exc
 import codecs
 from json_2_txt import *
+import case_parsers
 
 input_path = ""
 output_path = ""
@@ -21,10 +21,9 @@ output_path = ""
 
 def process_one(file_name,lines):
     field_dict = {}
+    #second requests are from 14
     for attr in attrs[1:]:
-        module = __import__('case_parsers', fromlist=[
-                            'case_info']).case_info
-        func = getattr(module, 'get_'+attr)
+        func = getattr(case_parsers, 'get_'+attr)
         ret = func(lines)
         field_dict[attr] = ret
     field_dict["fee_medical"] = get_medical(lines)
