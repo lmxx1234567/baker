@@ -1,5 +1,6 @@
 # 'filing_date','judgment_date','discharge_date','city_class','hospital'
 # 正则标准：年份必须是四位数，否则标准化时将出问题，年和月无所谓（XXXX年XX月XX日，XXXX/XX/XX, XXXX\XX\XX,XXXX年XX月XX号）
+import enum
 import re
 import csv
 from typing import List, Tuple
@@ -140,3 +141,48 @@ def get_hospital(lines: List[str]) -> List[str]:
             treatment_hospital = list(set(treatment_hospital))
             return treatment_hospital
     return treatment_hospital.append("None")
+
+
+# 诊断规则：诊断开始截取，到‘等’或句号结束。所有诊断截取的存为list，比较相似性，相似性接近时，取长的；
+# 有多个诊断时，排除‘诊断书’‘诊断证明’所在的list,留下'诊断'被判断为动词的list
+def get_diagnosis(lines: List[str]) -> List[str]:
+    # import jieba
+    # import jieba.posseg as pseg
+    # jieba.enable_paddle()
+    tmp_diagnosis = []
+    accept = {}
+    diagnosis=[]
+
+    # 存储所有带有“诊断”的list
+    for line in lines:
+        if "诊断" in line:
+            line = re.split(r'[。 ！]', line)
+            for period_subline in line:
+                if "诊断" in period_subline:
+                    half = re.split("诊断", period_subline)
+                    period_subline = re.split(r'[，：；]', period_subline)
+                    for comma_index, comma_subline in enumerate(period_subline):
+                        len(comma_subline)
+                        if "诊断" in comma_subline:
+                            diag = (re.split("诊断", comma_subline))[
+                                0]+"诊断"+half[1]
+                            tmp_diagnosis.append(diag)
+                            break
+                    break
+    for num, diag in enumerate(tmp_diagnosis):
+        accept[num]=False
+        diag1=re.split("诊断证明", diag)
+        diag2=re.split("诊断书", diag)
+        for d1 in diag1:
+            for d2 in diag2:
+                if "诊断" in d1 and "诊断" in d2:
+                    accept[num]=True
+    for (key,value) in accept.items():
+        if accept[key] == True:
+            diagnosis.append(tmp_diagnosis[key])
+    
+
+        # if accept == False and diagnosis:
+        #     diagnosis.pop(num)
+
+    return diagnosis
