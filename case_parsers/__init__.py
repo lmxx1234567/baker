@@ -19,4 +19,4 @@ def similar(string: str, sub: str) -> float:
 SEQ_MODEL_AVALIABLE = check_seq_match_model()
 
 from case_parsers.case_info import * 
-from case_parsers.qwx import *
+from case_parsers.case_info_v2 import *
