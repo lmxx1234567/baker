@@ -208,5 +208,3 @@ def get_diagnosis(lines: List[str]) -> List[str]:
         #             multidiagnosis.append(res)
         # if multidiagnosis:
         #     return multidiagnosis
-
-    return diagnosis
