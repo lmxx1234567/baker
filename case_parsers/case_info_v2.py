@@ -49,6 +49,18 @@ def get_filing_date(lines: List[str]) -> str:
         if filing_date is not None:
             filing_date = date_format(filing_date[0])
             break
+        else:
+            if "受理" in line:
+                line = re.split(r'[，：；。]', line)
+                for subline in line:
+                    if "受理" in subline:
+                        filing_date = pattern.search(subline)
+                    if filing_date is not None:
+                        break
+            if filing_date is not None:
+                a=filing_date[0]
+                filing_date = date_format(filing_date[0])
+                break
     return filing_date
 
 # 文末判决日期
