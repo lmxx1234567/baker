@@ -2,10 +2,10 @@
 import argparse
 import json
 
-from case_parsers import case_info
+import case_parsers
 
 attrs = ['all', 'case_name', 'case_id', 'year', 'cause', 'trial_procedure',
-         'case_type', 'court', 'document_type', 'judge', 'clerk', 'plaintiff_info', 'defendant_info', 'case_summary']
+         'case_type', 'court', 'document_type', 'judge', 'clerk', 'plaintiff_info', 'defendant_info', 'case_summary','filing_date','judgment_date','discharge_date','city_class','hospital','diagnosis']
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Legal document parser')
@@ -21,12 +21,12 @@ if __name__ == "__main__":
         field_dict = {}
         for attr in attrs[1:]:
             try:
-                func = getattr(case_info, 'get_'+attr)
+                func = getattr(case_parsers, 'get_'+attr)
                 ret = func(lines)
                 field_dict[attr] = ret
             except Exception:
                 field_dict[attr] = None
         print(json.dumps(field_dict, ensure_ascii=False))
     elif args.attr in attrs:
-        func = getattr(case_info, 'get_'+args.attr)
+        func = getattr(case_parsers, 'get_'+args.attr)
         print(func(lines))
