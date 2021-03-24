@@ -156,7 +156,7 @@ def get_hospital(lines: List[str]) -> List[str]:
     return treatment_hospital.append("None")
 
 
-# 诊断规则：诊断开始截取，到‘等’或句号结束。所有诊断截取的存为list，比较相似性，相似性接近时，取长的；
+# 诊断规则：诊断开始截取，到‘等’或句号结束。所有诊断截取的存为list，比较相似性，相似性接近时，取长的；--目前没有比较相似性
 # 有多个诊断时，排除‘诊断书’‘诊断证明’所在的list,留下'诊断'被判断为动词的list
 def get_diagnosis(lines: List[str]) -> List[str]:
     # import jieba
@@ -165,7 +165,7 @@ def get_diagnosis(lines: List[str]) -> List[str]:
     tmp_diagnosis = []
     accept = {}
     diagnosis=[]
-
+    multidiagnosis=[]
     # 存储所有带有“诊断”的list
     for line in lines:
         if "诊断" in line:
@@ -194,9 +194,19 @@ def get_diagnosis(lines: List[str]) -> List[str]:
     for (key,value) in accept.items():
         if accept[key] == True:
             diagnosis.append(tmp_diagnosis[key])
-    
-
-        # if accept == False and diagnosis:
-        #     diagnosis.pop(num)
+    len_diagnosis=len(diagnosis)
+    if len_diagnosis <= 1:
+        return diagnosis
+    else:
+        res = max(diagnosis, key=len, default='')
+        return res
+        # for index1 in range(len(diagnosis)-1):
+        #     for index2 in range(index1+1,len(diagnosis)-index1):
+        #         debughere=similar(diagnosis[index1], diagnosis[index2])
+        #         if similar(diagnosis[index1], diagnosis[index2]) > 0.3:
+        #             res = max(diagnosis[index1:index2], key=len, default='')
+        #             multidiagnosis.append(res)
+        # if multidiagnosis:
+        #     return multidiagnosis
 
     return diagnosis
