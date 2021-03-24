@@ -5,7 +5,7 @@ import os
 from case_parsers import case_info
 
 attrs = ['all', 'case_name', 'case_id', 'year', 'cause', 'trial_procedure',
-         'case_type', 'court', 'document_type', 'judge', 'clerk', 'plaintiff_info', 'defendant_info', 'case_summary']
+         'case_type', 'court', 'document_type', 'judge', 'clerk', 'plaintiff_info', 'defendant_info', 'case_summary','filing_date','judgment_date','discharge_date','city_class','hospital']
 
 kv = {"fee_medical": "医疗费", "fee_mess": "住院伙食补助", "fee_nurse": "护理费",
       "fee_nutrition": "营养费", "fee_post_cure": "后期治疗费",
