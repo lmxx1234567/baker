@@ -15,7 +15,8 @@ replace_lists = [{'年': '-', '月': '-', '日': '', '\.': '-', '/': '-', '号':
                  {'九': '9', '八': '8', '七': '7', '六': '6', '五': '5', '四': '4', '三': '3',
                      '二': '2', '一': '1', '元': '1', '○': '0', '〇': '0', '零': '0'},
                  {'三十一': '31', '三十': '30', '二十九': '29', '二十八': '28', '二十七': '27', '二十六': '26', '二十五': '25', '二十四': '24', '二十三': '23', '二十二': '22', '二十一': '21', '二十': '20', '十九': '19', '十八': '18', '十七': '17', '十六': '16', '十五': '15', '十四': '14', '十三': '13', '十二': '12', '十一': '11', '十': '10', '九': '09', '八': '08', '七': '07', '六': '06', '五': '05', '四': '04', '三': '03', '二': '02', '一': '01', '元': '01'}]
-
+pattern2 = re.compile(
+    '[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
 
 def date_format(raw_date: str):
     for key, value in replace_lists[0].items():
@@ -68,7 +69,7 @@ def get_filing_date(lines: List[str]) -> str:
 
 def get_judgment_date(lines: List[str]) -> str:
     for line in reversed(lines):
-        judgment_date = pattern.search(line)
+        judgment_date = pattern2.search(line)
         if judgment_date is not None:
             judgment_date = date_format(judgment_date[0])
             break
@@ -181,6 +182,7 @@ def get_diagnosis(lines: List[str]) -> List[str]:
                             tmp_diagnosis.append(diag)
                             break
                     break
+    # 排除诊断书、诊断说明
     for num, diag in enumerate(tmp_diagnosis):
         accept[num]=False
         diag1=re.split("诊断证明", diag)
