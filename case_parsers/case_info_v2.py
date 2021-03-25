@@ -1,4 +1,4 @@
-# 'filing_date','judgment_date','discharge_date','city_class','hospital'
+# 'filing_date','judgment_date','discharge_date','city_class','hospital','diagnosis','previous'
 # 正则标准：年份必须是四位数，否则标准化时将出问题，年和月无所谓（XXXX年XX月XX日，XXXX/XX/XX, XXXX\XX\XX,XXXX年XX月XX号）
 import enum
 import re
@@ -17,6 +17,7 @@ replace_lists = [{'年': '-', '月': '-', '日': '', '\.': '-', '/': '-', '号':
                  {'三十一': '31', '三十': '30', '二十九': '29', '二十八': '28', '二十七': '27', '二十六': '26', '二十五': '25', '二十四': '24', '二十三': '23', '二十二': '22', '二十一': '21', '二十': '20', '十九': '19', '十八': '18', '十七': '17', '十六': '16', '十五': '15', '十四': '14', '十三': '13', '十二': '12', '十一': '11', '十': '10', '九': '09', '八': '08', '七': '07', '六': '06', '五': '05', '四': '04', '三': '03', '二': '02', '一': '01', '元': '01'}]
 pattern2 = re.compile(
     '[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
+
 
 def date_format(raw_date: str):
     for key, value in replace_lists[0].items():
@@ -59,7 +60,7 @@ def get_filing_date(lines: List[str]) -> str:
                     if filing_date is not None:
                         break
             if filing_date is not None:
-                a=filing_date[0]
+                a = filing_date[0]
                 filing_date = date_format(filing_date[0])
                 break
     return filing_date
@@ -164,8 +165,8 @@ def get_diagnosis(lines: List[str]) -> List[str]:
     # jieba.enable_paddle()
     tmp_diagnosis = []
     accept = {}
-    diagnosis=[]
-    multidiagnosis=[]
+    diagnosis = []
+    multidiagnosis = []
     # 存储所有带有“诊断”的list
     for line in lines:
         if "诊断" in line:
@@ -175,7 +176,6 @@ def get_diagnosis(lines: List[str]) -> List[str]:
                     half = re.split("诊断", period_subline)
                     period_subline = re.split(r'[，：；]', period_subline)
                     for comma_index, comma_subline in enumerate(period_subline):
-                        len(comma_subline)
                         if "诊断" in comma_subline:
                             diag = (re.split("诊断", comma_subline))[
                                 0]+"诊断"+half[1]
@@ -184,17 +184,17 @@ def get_diagnosis(lines: List[str]) -> List[str]:
                     break
     # 排除诊断书、诊断说明
     for num, diag in enumerate(tmp_diagnosis):
-        accept[num]=False
-        diag1=re.split("诊断证明", diag)
-        diag2=re.split("诊断书", diag)
+        accept[num] = False
+        diag1 = re.split("诊断证明", diag)
+        diag2 = re.split("诊断书", diag)
         for d1 in diag1:
             for d2 in diag2:
                 if "诊断" in d1 and "诊断" in d2:
-                    accept[num]=True
-    for (key,value) in accept.items():
+                    accept[num] = True
+    for (key, value) in accept.items():
         if accept[key] == True:
             diagnosis.append(tmp_diagnosis[key])
-    len_diagnosis=len(diagnosis)
+    len_diagnosis = len(diagnosis)
     if len_diagnosis <= 1:
         return diagnosis
     else:
@@ -208,3 +208,48 @@ def get_diagnosis(lines: List[str]) -> List[str]:
         #             multidiagnosis.append(res)
         # if multidiagnosis:
         #     return multidiagnosis
+
+# previous:既往上下文提取
+# 说明：从‘既往’关键字出现的短句（即逗号、分号拆分结果）开始截取，到句号或分号结束:
+# 到分号结束：无其他规则；
+# 到句号结束：判断短句中是否出现关键字‘既往’、‘病’、‘院’、‘就诊’、‘科室’中任意字样，如有，则继续，否则截取结束。
+
+
+def get_previous(lines: List[str]) -> List[str]:
+    previous = ''
+    keywords = ["既往", "病", "院", "就诊", "科室"]
+    starthere = False
+    takeit = False
+    for line in lines:
+        # 请保留此注释，目前标注样例少，下面的注释部分可能用于后续优化
+        # if "既往" in line:
+        #     line = re.split(r'[； ！]', line)
+        #     for period_subline in line:
+        #         if "既往" in period_subline:
+        #             half = re.split("既往", period_subline)
+        #             period_subline = re.split(r'[，：；]', period_subline)
+        #             for comma_index, comma_subline in enumerate(period_subline):
+        #                 if "既往" in comma_subline:
+        #                     prev = (re.split("既往", comma_subline))[0]+"既往"+half[1]
+        #                     previous.append(prev)
+        #                     break
+        #             break
+        line = re.split(r'[。]', line)
+        for period_subline in line:
+            if "既往" in period_subline:
+                half = re.split("既往", period_subline)
+                # period_subline = re.split(r'[，：；]', period_subline)
+                period_subline = re.findall('.*?[：；]', period_subline)#更精细的时候要加上逗号
+                for comma_index, comma_subline in enumerate(period_subline):
+                    if "既往" in comma_subline:
+                        starthere = True
+                    if starthere is True:
+                        takeit = False
+                        for keyword in keywords:
+                            if keyword in comma_subline:
+                                takeit = True
+                                previous+=comma_subline
+                                break
+                    if starthere is True and takeit is False:
+                        return previous
+    return previous
