@@ -180,34 +180,18 @@ def get_diagnosis(lines: List[str]) -> List[str]:
                             diag = (re.split("诊断", comma_subline))[
                                 0]+"诊断"+half[1]
                             tmp_diagnosis.append(diag)
-                            break
-                    break
+                            # break
+                    # break
     # 排除诊断书、诊断说明
     for num, diag in enumerate(tmp_diagnosis):
         accept[num] = False
-        diag1 = re.split("诊断证明", diag)
-        diag2 = re.split("诊断书", diag)
-        for d1 in diag1:
-            for d2 in diag2:
-                if "诊断" in d1 and "诊断" in d2:
-                    accept[num] = True
+        diag0=re.sub("诊断证?[书明]","",diag)
+        if "诊断" in diag0:
+            accept[num] = True
     for (key, value) in accept.items():
         if accept[key] == True:
             diagnosis.append(tmp_diagnosis[key])
-    len_diagnosis = len(diagnosis)
-    if len_diagnosis <= 1:
-        return diagnosis
-    else:
-        res = max(diagnosis, key=len, default='')
-        return res
-        # for index1 in range(len(diagnosis)-1):
-        #     for index2 in range(index1+1,len(diagnosis)-index1):
-        #         debughere=similar(diagnosis[index1], diagnosis[index2])
-        #         if similar(diagnosis[index1], diagnosis[index2]) > 0.3:
-        #             res = max(diagnosis[index1:index2], key=len, default='')
-        #             multidiagnosis.append(res)
-        # if multidiagnosis:
-        #     return multidiagnosis
+    return diagnosis
 
 # previous:既往上下文提取
 # 说明：从‘既往’关键字出现的短句（即逗号、分号拆分结果）开始截取，到句号或分号结束:
