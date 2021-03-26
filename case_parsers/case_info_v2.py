@@ -236,4 +236,6 @@ def get_previous(lines: List[str]) -> List[str]:
                                 break
                     if starthere is True and takeit is False:
                         return previous
+    if not previous:
+        previous = '无'
     return previous
