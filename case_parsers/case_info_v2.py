@@ -17,7 +17,7 @@ pattern_accdate = re.compile(
     '[2].\d{1,3}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
 replace_lists = [{'年': '-', '月': '-', '日': '', '\.': '-', '/': '-', '号': ''},
                  {'九': '9', '八': '8', '七': '7', '六': '6', '五': '5', '四': '4', '三': '3',
-                     '二': '2', '一': '1', '元': '1', '○': '0', '〇': '0', '零': '0','O':'0'},
+                     '二': '2', '一': '1', '元': '1', '○': '0', '〇': '0', '零': '0', 'O': '0'},
                  {'三十一': '31', '三十': '30', '二十九': '29', '二十八': '28', '二十七': '27', '二十六': '26', '二十五': '25', '二十四': '24', '二十三': '23', '二十二': '22', '二十一': '21', '二十': '20', '十九': '19', '十八': '18', '十七': '17', '十六': '16', '十五': '15', '十四': '14', '十三': '13', '十二': '12', '十一': '11', '十': '10', '九': '09', '八': '08', '七': '07', '六': '06', '五': '05', '四': '04', '三': '03', '二': '02', '一': '01', '元': '01'}]
 pattern2 = re.compile(
     '[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
@@ -247,24 +247,27 @@ def get_previous(lines: List[str]) -> List[str]:
 
 # 事故日期：accident_date
 # 优化思路：目前没有时分秒，优化的时候考虑：有时分秒优先时分秒，否则第一个日期
+
+
 def get_accident_date(lines: List[str]) -> str:
-    p_list = [r'[下列]?事实.?[理由]?', '诉称', '辩称','事故发生概况','诉讼请求',r'经审理[查明]?[认定]?','本院认定事实如下']
+    p_list = [r'[下列]?事实.?[理由]?', '诉称', '辩称', '事故发生概况',
+              '诉讼请求', r'经审理[查明]?[认定]?', '本院认定事实如下']
     for p in p_list:
-        torline=0
+        torline = 0
         accident_date = None
         acc_19 = None
         nextline = False
         for line in lines:
             if nextline is True:
-                torline+=1
+                torline += 1
                 sublines = re.split(r'[，：:；。]', line)
                 for subline in sublines:
                     accident_date = pattern_accdate.search(subline)
                     if acc_19 is None:
-                        acc_19=pattern.search(subline)
+                        acc_19 = pattern.search(subline)
                     if accident_date is not None:
                         return date_format(accident_date[0])
-            if torline>4 and acc_19 is not None:
+            if torline > 4 and acc_19 is not None:
                 return date_format(acc_19[0])
 
             keyObj = re.search(p, line)
@@ -278,43 +281,32 @@ def get_accident_date(lines: List[str]) -> str:
                 except IndexError:
                     nextline = True
                     continue
-                torline+=1
+                torline += 1
                 for subline in sublines0:
                     accident_date = pattern_accdate.search(subline)
                     if acc_19 is None:
-                        acc_19=pattern.search(subline)
+                        acc_19 = pattern.search(subline)
                     if accident_date is not None:
                         return date_format(accident_date[0])
-            if torline>4 and acc_19 is not None:
+            if torline > 4 and acc_19 is not None:
                 return date_format(acc_19[0])
-                    
+
     return accident_date
 
 
 # 评残日期：disable_assessment_date
-def get_disable_assessment(lines: List[str]) -> str:
+def get_disable_assessment_date(lines: List[str]) -> str:
     disable_assessment = None
-    for line in lines:
-        if "立案" in line:
-            line = re.split(r'[，：；。]', line)
-            for subline in line:
-                if "立案" in subline:
-                    disable_assessment = pattern.search(subline)
-                if disable_assessment is not None:
-                    break
-        if disable_assessment is not None:
-            disable_assessment = date_format(disable_assessment[0])
-            break
-        else:
-            if "受理" in line:
-                line = re.split(r'[，：；。]', line)
+    p_list=[r'级.?残',r'伤残.*级',r'鉴定(所|中心).*(出具|[作做]出)',r'鉴定(所|中心)']
+    for p in p_list:
+        for line in lines:
+            keyObj = re.search(p, line)
+            if keyObj is not None:
+                line = re.split(r'[；。]', line)
                 for subline in line:
-                    if "受理" in subline:
+                    keyObj = re.search(p, subline)
+                    if keyObj is not None:
                         disable_assessment = pattern.search(subline)
                     if disable_assessment is not None:
-                        break
-            if disable_assessment is not None:
-                a = disable_assessment[0]
-                disable_assessment = date_format(disable_assessment[0])
-                break
+                        return date_format(disable_assessment[0])
     return disable_assessment
