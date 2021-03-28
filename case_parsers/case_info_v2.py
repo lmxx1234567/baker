@@ -2,14 +2,9 @@
 # 事故日期：accident_date
 # 评残日期：disable_assessment_date
 # 正则标准：年份必须是四位数，否则标准化时将出问题，年和月无所谓（XXXX年XX月XX日，XXXX/XX/XX, XXXX\XX\XX,XXXX年XX月XX号）
-import enum
 import re
-import csv
-from typing import List, Tuple
-import itertools
+from typing import List, Dict
 import datetime
-from . import schema, similar, SEQ_MODEL_AVALIABLE
-from case_parsers.seq_match import seq_match, seq_match_multiple
 
 pattern = re.compile(
     '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
@@ -23,7 +18,7 @@ pattern2 = re.compile(
     '[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
 
 
-def date_format(raw_date: str):
+def date_format(raw_date: str) -> str:
     for key, value in replace_lists[0].items():
         raw_date = re.sub(key, value, raw_date)
     yearlen = len((raw_date.split('-'))[0])
@@ -101,7 +96,7 @@ def get_discharge_date(lines: List[str]) -> str:
 # 从前往后找到的第一个法院名字
 
 
-def get_city_class(lines: List[str]):
+def get_city_class(lines: List[str]) -> Dict:
     import cpca
     import jieba
     import jieba.posseg as pseg
@@ -222,7 +217,7 @@ def get_previous(lines: List[str]) -> List[str]:
         #                     previous.append(prev)
         #                     break
         #             break
-        line = re.split(r'[。]', line)
+        line = line.split('。')
         for period_subline in line:
             if "既往" in period_subline:
                 half = re.split("既往", period_subline)
@@ -248,10 +243,10 @@ def get_previous(lines: List[str]) -> List[str]:
 # 事故日期：accident_date
 # 优化思路：目前没有时分秒，优化的时候考虑：有时分秒优先时分秒，否则第一个日期
 
-
+# TODO: 需要测试
 def get_accident_date(lines: List[str]) -> str:
-    p_list = [r'[下列]?事实.?[理由]?', '诉称', '辩称', '事故发生概况',
-              '诉讼请求', r'经审理[查明]?[认定]?', '本院认定事实如下']
+    p_list = [r'(下列)?事实.?(理由)?', '诉称', '辩称', '事故发生概况',
+              '诉讼请求', r'经审理(查明)?(认定)?', '本院认定事实如下']
     for p in p_list:
         torline = 0
         accident_date = None
@@ -297,7 +292,7 @@ def get_accident_date(lines: List[str]) -> str:
 # 评残日期：disable_assessment_date
 def get_disable_assessment_date(lines: List[str]) -> str:
     disable_assessment = None
-    p_list=[r'级.?残',r'伤残.*级',r'鉴定(所|中心).*(出具|[作做]出)',r'鉴定(所|中心)']
+    p_list = [r'级.?残', r'伤残.*级', r'鉴定(所|中心).*(出具|[作做]出)', r'鉴定(所|中心)']
     for p in p_list:
         for line in lines:
             keyObj = re.search(p, line)
