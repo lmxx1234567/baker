@@ -140,39 +140,36 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
         # Have a name, choose the name first; Otherwise select organization
         elif '原告' in line:
             find = True
-            break_it = 0
             line = re.sub(r'原告[：:，,]', '', line)
-            seg_list = list(pseg.cut(line, use_paddle=True))
-            for seg in seg_list:
-                if seg.flag == 'PER' or seg.flag == 'nr':
-                    plaintiff_info.append({
-                        "plaintiff": re.sub(r'[，：；。]', '', seg.word),
-                        "plaintiff_agent": "",
-                        "law_firm": ""
-                    })
-                    break_it = 1
+            sublines = re.split(r'[，：:；。、]', line)
+            break_it = 0
+            for subline in sublines:
+                seg_list = list(pseg.cut(subline, use_paddle=True))
+                for seg in seg_list:
+                    if seg.flag == 'PER' or seg.flag == 'nr':
+                        plaintiff_info.append({
+                            "plaintiff": re.sub(r'[，：；。]', '', seg.word),
+                            "plaintiff_agent": "",
+                            "law_firm": ""
+                        })
+                        break_it = 1
+                        break
+                if break_it:
                     break
             if break_it:
                 continue
-            for seg in seg_list:
-                if break_it == 0 and seg.flag == 'ORG':
-                    plaintiff_info.append({
-                        "plaintiff": re.sub(r'[，：；。]', '', seg.word),
-                        "plaintiff_agent": "",
-                        "law_firm": ""
-                    })
-                    break_it = 1
-                    break
-            if break_it:
-                continue
-            for seg in seg_list:
-                if break_it == 0 and seg.flag == 'nr':
-                    plaintiff_info.append({
-                        "plaintiff": re.sub(r'[，：；。]', '', seg.word),
-                        "plaintiff_agent": "",
-                        "law_firm": ""
-                    })
-                    break_it = 1
+            for subline in sublines:
+                seg_list = list(pseg.cut(subline, use_paddle=True))
+                for seg in seg_list:
+                    if break_it == 0 and seg.flag == 'ORG':
+                        plaintiff_info.append({
+                            "plaintiff": re.sub(r'[，：；。]', '', seg.word),
+                            "plaintiff_agent": "",
+                            "law_firm": ""
+                        })
+                        break_it = 1
+                        break
+                if break_it:
                     break
         else:
             if find:
