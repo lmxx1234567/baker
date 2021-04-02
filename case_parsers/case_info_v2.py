@@ -5,7 +5,10 @@
 import re
 from typing import List, Dict
 import datetime
-
+from . import schema, similar, SEQ_MODEL_AVALIABLE
+from case_parsers.seq_match import seq_match, seq_match_multiple
+from case_parsers import case_info
+accline=0 #事实与理由所在行
 pattern = re.compile(
     '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
 pattern_accdate = re.compile(
@@ -305,3 +308,47 @@ def get_disable_assessment_date(lines: List[str]) -> str:
                     if disable_assessment is not None:
                         return date_format(disable_assessment[0])
     return disable_assessment
+
+# 伤者相关：injured
+# {injured_name:xx, injured_birth:xx,injured_sex:男女, injured_work:xx,injured_education:xx,injured_resident:xx,injured_marriage:xx}
+# 需要排除被告：未完成--data/provide/scase3
+# 有人姓名会被识别成组织ORG---case5
+def get_injured_info(lines: List[str]) -> List[dict]:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
+    injured_list=[]
+    plaintiff_info=case_info.get_plaintiff_info(lines)
+    defendant_info=case_info.get_defendant_info(lines)
+    # get_accident_line
+    p_list = ['受伤','当场死亡']
+    for p in p_list:
+        for line in lines:
+            keyObj = re.search(p, line)
+            if keyObj is not None:
+                sublines = re.split(r'[，：:；。]', line)
+                for subline in sublines:
+                    Mayfind=False
+                    keyObj = re.search(p, subline)
+                    if keyObj is not None:
+                        seg_list = pseg.cut(subline, use_paddle=True)
+                        Mayfind=True
+                        injured_info={'injured_name':'', 'injured_birth':'','injured_sex':'男/女', 'injured_work':'','injured_education':'','injured_resident':'','injured_marriage':''}
+                        for seg in seg_list:
+                            if seg.flag == 'PER' or seg.flag == 'nr':
+                                injuerd=re.sub(r'[，：；。（）]', '', seg.word)
+                                # 如果已经存在则不插入，如果在被告中出现就不插入
+                                if bool([True for injured_info in injured_list if injuerd in injured_info.values()]) or bool([True for defendant in defendant_info if injuerd in defendant.values()]):
+                                    continue
+                                injured_info['injured_name'] = injuerd
+                                injured_list.append(injured_info)
+                        # 造成原告受伤，没提姓名----provide/case6
+                        if Mayfind and "原告" in subline:
+                            if injured_info['injured_name']=='':
+                                for plaint in plaintiff_info:
+                                    injuerd=plaint["plaintiff"]
+                                    if bool([True for injured_info in injured_list if injuerd in injured_info.values()]):
+                                        continue
+                                    injured_info['injured_name'] = injuerd
+                                    injured_list.append(injured_info)
+    return injured_list
