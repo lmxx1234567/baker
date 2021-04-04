@@ -5,6 +5,7 @@
 import re
 from typing import List, Dict
 import datetime
+from case_parsers import case_info
 
 pattern = re.compile(
     '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
@@ -305,3 +306,222 @@ def get_disable_assessment_date(lines: List[str]) -> str:
                     if disable_assessment is not None:
                         return date_format(disable_assessment[0])
     return disable_assessment
+
+# 伤者相关：injured
+# {injured_name:xx, injured_birth:xx,injured_sex:男女, injured_work:xx,injured_education:xx,injured_resident:xx,injured_marriage:xx}
+# 需要排除被告：已完成--data/provide/scase3
+# 有人姓名会被识别成组织ORG---case5
+def _get_injured_name(lines: List[str]) -> List[dict]:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
+    injured_list = []
+    name = r'(原告)'
+    injured_info = {'injured_name': '', 'injured_birth': 'null', 'injured_sex': 'null',
+                                        'injured_work': 'null', 'injured_education': 'null', 'injured_resident': 'null', 'injured_marriage': []}
+    plaintiff_info = case_info.get_plaintiff_info(lines)
+    defendant_info = case_info.get_defendant_info(lines)
+    # get_accident_line
+    p_list = ['受伤', '当场死亡']
+    for p in p_list:
+        for line in lines:
+            keyObj = re.search(p, line)
+            if keyObj is not None:
+                sublines = re.split(r'[，：:；。]', line)
+                for subline in sublines:
+                    Mayfind = False
+                    keyObj = re.search(p, subline)
+                    if keyObj is not None:
+                        seg_list = pseg.cut(subline, use_paddle=True)
+                        Mayfind = True
+                        for seg in seg_list:
+                            if seg.flag == 'PER' or seg.flag == 'nr':
+                                injured_info = {'injured_name': '', 'injured_birth': 'null', 'injured_sex': 'null',
+                                        'injured_work': 'null', 'injured_education': 'null', 'injured_resident': 'null', 'injured_marriage': []}
+                                injuerd = re.sub(r'[，：；。（）]', '', seg.word)
+                                # 如果已经存在则不插入，如果在被告中出现就不插入
+                                if bool([True for injured_info in injured_list if injuerd in injured_info.values()]) or bool([True for defendant in defendant_info if injuerd in defendant.values()]):
+                                    continue
+                                injured_info['injured_name'] = injuerd
+                                injured_list.append(injured_info)
+                        # 造成原告受伤，没提姓名----provide/case6
+                        keyObj_name = re.search(name,subline)
+                        if Mayfind and keyObj_name is not None:
+                            if injured_info['injured_name'] == '':
+                                for plaint in plaintiff_info:
+                                    injuerd = plaint["plaintiff"]
+                                    if bool([True for injured_info in injured_list if injuerd in injured_info.values()]):
+                                        continue
+                                    injured_info['injured_name'] = injuerd
+                                    injured_list.append(injured_info)
+    return injured_list
+
+def _get_injured_birsex(lines: List[str],injured_list) -> List[dict]:
+    if injured_list=='':
+        return injured_list
+    birth_date = ''
+    torsubline = 0
+    sex_bool = False
+    birth_bool = False
+    find_injured = False
+    name = r'(原告)|(被害人)'
+    for injured in injured_list:
+        for line in lines:
+            # injured["injured_name"]=(injured["injured_name"]).replace('*','某')
+            keyObj = re.search((injured["injured_name"]).replace('*','某'), line.replace('*','某'))
+            keyObj2 = re.search(name, line)
+            if keyObj is not None or keyObj2 is not None:
+                line = re.split(r'[，：；。]', line)
+                for subline in line:
+                    torsubline += 1
+                    keyObj = re.search((injured["injured_name"]).replace('*','某'), subline.replace('*','某'))
+                    if keyObj is not None or find_injured:
+                        torsubline = 0
+                        find_injured = True
+                        birth_date = pattern.search(subline)
+                        birthbool2 = re.search(r'(出生|生于)', subline)
+                        sex = re.search(r'[男女]', subline)
+                        if birth_date is not None and birthbool2 is not None:
+                            birth_bool = True
+                            injured["injured_birth"] = date_format(birth_date[0])
+                        if sex is not None:
+                            sex_bool = True
+                            injured["injured_sex"] = sex[0]
+                        if birth_bool and sex_bool:
+                            break
+                    if find_injured and torsubline > 7:
+                        find_injured = False
+    return injured_list
+
+def _get_injured_marri(lines: List[str],injured_list) -> List[dict]:
+    if injured_list=='':
+        return injured_list
+    find_injured = False
+    name = r'(原告)|([被受]害人)|(死者)'
+    for injured in injured_list:
+        for line in lines:
+            marri = re.search("婚育史", line)
+            if marri is not None:
+                line = re.split(r'[；。]', line)
+                for subline in line:
+                    marri = re.search("婚育史", subline)
+                    if marri is not None:
+                        keyObj = re.search((injured["injured_name"]).replace('*','某'), subline.replace('*','某'))
+                        keyObj2 = re.search(name, subline)
+                        if keyObj is not None or keyObj2 is not None:
+                            find_injured = True
+                            marriage = subline
+                            injured["injured_marriage"].append(subline)
+                            break
+    return injured_list
+
+def _get_injured_work(lines: List[str],injured_list) -> List[dict]:
+    if injured_list=='':
+        return injured_list
+    work=r'(工作)|(农)|(种地)|(工地)|(职员)'
+    name = r'(原告)|([被受]害人)|(死者)'
+    for line in lines:
+        keyObj=re.search(work,line)
+        if keyObj is not None:
+            sublines = re.split(r'[：；。，]',line)
+            for subline in sublines:
+                breakit = True
+                keyObj0=re.search(work,subline)
+                if keyObj0 is not None:
+                    for injured_info in injured_list:
+                        keyObj=re.search((injured_info["injured_name"]).replace('*','某'),subline.replace('*','某'))
+                        keyObj2 = re.search(name, subline)
+                        if keyObj is not None and injured_info["injured_work"] == 'null':
+                            injured_info["injured_work"] = subline
+                            breakit = False
+                        if breakit and keyObj2 is not None and injured_info["injured_work"] == 'null':
+                            for injured_info in injured_list:
+                                keyObj=re.search((injured_info["injured_name"]).replace('*','某'),subline.replace('*','某'))
+                                if keyObj is not None: break
+                            injured_info["injured_work"] = subline
+    return injured_list
+
+def _get_injured_edu(lines: List[str],injured_list) -> List[dict]:
+    if injured_list=='':
+        return injured_list
+    education=r'(文[凭化])|(初中)|(小学)|(高中)|(本科)'
+    name = r'(原告)|([被受]害人)|(死者)'
+    for line in lines:
+        keyObj=re.search(education,line)
+        if keyObj is not None:
+            sublines = re.split(r'[：；。]',line)
+            for subline in sublines:
+                breakit = True
+                keyObj=re.search(education,subline)
+                if keyObj is not None:
+                    for injured_info in injured_list:
+                        keyObj=re.search((injured_info["injured_name"]).replace('*','某'),subline.replace('*','某'))
+                        keyObj2 = re.search(name, subline)
+                        if keyObj is not None and injured_info["injured_name"] != '':
+                            injured_info["injured_education"] = subline
+                            breakit = False
+                        if breakit and keyObj2 is not None:
+                            for injured_info in injured_list:
+                                keyObj=re.search((injured_info["injured_name"]).replace('*','某'),subline.replace('*','某'))
+                                if keyObj is not None: break
+                            injured_info["injured_education"] = subline
+                        elif keyObj is None and keyObj2 is None and injured_info["injured_education"] == 'null':
+                            injured_info["injured_education"] = subline
+    return injured_list
+
+def _get_injured_resdt(lines: List[str],injured_list) -> List[dict]:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
+    if injured_list=='':
+        return injured_list
+    res=[r'住|(生活)',r'(居委会)|(!农)村|县']
+    relative=r'父|母|儿|兄|弟|姐|妹|院'
+    includeres=r'与|和|跟'
+    resdt = False
+    breakall = True
+    breakit = True
+    name = r'(原告)|([被受]害人)|(死者)'
+    for r in res:
+        for line in lines:
+            line=re.split(r'[。]',line)
+            for l in line:
+                sublines = re.split(r'[：；，]',l)
+                for subline in sublines:
+                    keyObj=re.search(r,subline)
+                    keyObj_relative=re.search(relative,subline)
+                    keyObj_include=re.search(includeres,subline)
+                    if (keyObj is not None and keyObj_relative is None) or (keyObj is not None and keyObj_include is not None):
+                        seg_list = pseg.cut(subline, use_paddle=True)
+                        for seg in seg_list:
+                            if seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'LOC':
+                                resdt = True
+                        if resdt:
+                            for injured_info in injured_list:
+                                keyObj=re.search((injured_info["injured_name"]).replace('*','某'),l.replace('*','某'))
+                                keyObj2 = re.search(name, subline)
+                                if keyObj is not None and injured_info["injured_name"] != '':
+                                    injured_info["injured_resident"] = subline
+                                    breakit = False
+                                if breakit and keyObj2 is not None:
+                                    for injured_info in injured_list:
+                                        keyObj=re.search((injured_info["injured_name"]).replace('*','某'),subline.replace('*','某'))
+                                        if keyObj is not None: break
+                                    injured_info["injured_resident"] = subline
+        for injured_info in injured_list:
+            if injured_info["injured_resident"] == 'null':
+                breakall = False
+                break
+        if breakall:
+            return injured_list
+    return injured_list
+
+def get_injured_info(lines: List[str]) -> List[dict]:
+    injured_list = _get_injured_name(lines)
+    injured_list = _get_injured_birsex(lines,injured_list)
+    injured_list = _get_injured_marri(lines,injured_list)
+    injured_list = _get_injured_work(lines,injured_list)
+    injured_list = _get_injured_edu(lines,injured_list)
+    injured_list = _get_injured_resdt(lines,injured_list)
+
+    return injured_list
