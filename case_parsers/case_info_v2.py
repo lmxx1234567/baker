@@ -359,7 +359,7 @@ def _get_injured_name(lines: List[str]) -> List[dict]:
     return injured_list
 
 def _get_injured_birsex(lines: List[str],injured_list) -> List[dict]:
-    if (injured_list[0])["injured_name"]=='':
+    if injured_list=='':
         return injured_list
     birth_date = ''
     torsubline = 0
@@ -395,7 +395,7 @@ def _get_injured_birsex(lines: List[str],injured_list) -> List[dict]:
     return injured_list
 
 def _get_injured_marri(lines: List[str],injured_list) -> List[dict]:
-    if (injured_list[0])["injured_name"]=='':
+    if injured_list=='':
         return injured_list
     find_injured = False
     name = r'(原告)|([被受]害人)|(死者)'
@@ -414,12 +414,10 @@ def _get_injured_marri(lines: List[str],injured_list) -> List[dict]:
                             marriage = subline
                             injured["injured_marriage"].append(subline)
                             break
-    if (1-find_injured) and marri:
-        injured["injured_marriage"].append(marriage)
     return injured_list
 
 def _get_injured_work(lines: List[str],injured_list) -> List[dict]:
-    if (injured_list[0])["injured_name"]=='':
+    if injured_list=='':
         return injured_list
     work=r'(工作)|(农)|(种地)|(工地)|(职员)'
     name = r'(原告)|([被受]害人)|(死者)'
@@ -445,7 +443,7 @@ def _get_injured_work(lines: List[str],injured_list) -> List[dict]:
     return injured_list
 
 def _get_injured_edu(lines: List[str],injured_list) -> List[dict]:
-    if (injured_list[0])["injured_name"]=='':
+    if injured_list=='':
         return injured_list
     education=r'(文[凭化])|(初中)|(小学)|(高中)|(本科)'
     name = r'(原告)|([被受]害人)|(死者)'
@@ -476,7 +474,7 @@ def _get_injured_resdt(lines: List[str],injured_list) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
-    if (injured_list[0])["injured_name"]=='':
+    if injured_list=='':
         return injured_list
     res=[r'住|(生活)',r'(居委会)|(!农)村|县']
     relative=r'父|母|儿|兄|弟|姐|妹|院'
