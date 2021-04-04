@@ -5,10 +5,8 @@
 import re
 from typing import List, Dict
 import datetime
-from . import schema, similar, SEQ_MODEL_AVALIABLE
-from case_parsers.seq_match import seq_match, seq_match_multiple
 from case_parsers import case_info
-accline=0 #事实与理由所在行
+
 pattern = re.compile(
     '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
 pattern_accdate = re.compile(
