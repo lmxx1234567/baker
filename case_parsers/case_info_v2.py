@@ -109,6 +109,7 @@ def get_city_class(lines: List[str]) -> Dict:
             line = re.split(r'[，：；。\s+]', line)
             for subline in line:
                 if "人民法院" in subline:
+                    subline = re.sub(r'[\n\s]', '', subline)
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
                         if seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG':
@@ -137,6 +138,7 @@ def get_hospital(lines: List[str]) -> List[str]:
             line = re.split(r'[，：；。\s+]', line)
             for subline in line:
                 if "医院" in subline:
+                    subline = re.sub(r'[\n\s]', '', subline)
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
                         if (seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG') and ("医院" in (seg.word)):
@@ -332,6 +334,7 @@ def _get_injured_name(lines: List[str]) -> List[dict]:
                     Mayfind = False
                     keyObj = re.search(p, subline)
                     if keyObj is not None:
+                        subline = re.sub(r'[\n\s]', '', subline)
                         seg_list = pseg.cut(subline, use_paddle=True)
                         Mayfind = True
                         for seg in seg_list:
@@ -493,6 +496,7 @@ def _get_injured_resdt(lines: List[str],injured_list) -> List[dict]:
                     keyObj_include=re.search(includeres,subline)
                     if (keyObj is not None and keyObj_relative is None) or (keyObj is not None and keyObj_include is not None):
                         if "院" not in subline:
+                            subline = re.sub(r'[\n\s]', '', subline)
                             seg_list = pseg.cut(subline, use_paddle=True)
                             for seg in seg_list:
                                 if seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'LOC':
