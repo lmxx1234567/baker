@@ -109,6 +109,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
     for line in lines:
         if '委托诉讼代理人' in line:
             line = re.sub(r'委托诉讼代理人[：:，,]', '', line)
+            line = re.sub(r'[\n\s]', '', line)
             seg_list = pseg.cut(line, use_paddle=True)
             plaintiff_agent = law_firm = ''
             for seg in seg_list:
@@ -142,7 +143,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
         elif '原告' in line:
             find = True
             # line = re.sub(r'原告[：:，,]', '', line)
-            line = re.sub('\n', '', line)
+            line = re.sub(r'[\n\s]', '', line)
             sublines = re.split(r'[，：:；。、]', line)
             break_it = 0
             for subline in sublines:
@@ -153,7 +154,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         break_it = 1
                         break
                     plaintiff_info.append({
-                            "plaintiff": re.sub(r'原告[：:，,]?', '', subline),
+                            "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
                             "law_firm": ""
                         })
@@ -171,13 +172,13 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         break
                 if break_it:
                     break
-            if (1-break_it):
+            if break_it == 0:
                 for subline in sublines:
                     seg_list = list(pseg.cut(subline, use_paddle=True))
                     for seg in seg_list:
-                        if break_it == 0 and seg.flag == 'ORG':
+                        if seg.flag == 'ORG':
                             plaintiff_info.append({
-                                "plaintiff": re.sub(r'[，：；。]', '', seg.word),
+                                "plaintiff": seg.word,
                                 "plaintiff_agent": "",
                                 "law_firm": ""
                             })
@@ -210,6 +211,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
             break
         if similar(line, '委托诉讼代理人') > 0.5:
             line = re.sub(r'委托诉讼代理人[：:，,]?', '', line)
+            line = re.sub(r'[\n\s]', '', line)
             seg_list = pseg.cut(line, use_paddle=True)
             defendant_agent = law_firm = ''
             for seg in seg_list:
@@ -246,6 +248,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
             skip_it = False
             defendant_value = None
             line = re.sub(r'被告[：:，,]', '', line)
+            line = re.sub(r'[\n\s]', '', line)
             seg_list = list(pseg.cut(line, use_paddle=True))
             for seg in seg_list:
                 if seg.flag == 'PER':

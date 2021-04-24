@@ -109,6 +109,7 @@ def get_city_class(lines: List[str]) -> Dict:
             line = re.split(r'[，：；。\s+]', line)
             for subline in line:
                 if "人民法院" in subline:
+                    subline = re.sub(r'[\n\s]', '', subline)
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
                         if seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG':
@@ -137,6 +138,7 @@ def get_hospital(lines: List[str]) -> List[str]:
             line = re.split(r'[，：；。\s+]', line)
             for subline in line:
                 if "医院" in subline:
+                    subline = re.sub(r'[\n\s]', '', subline)
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
                         if (seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG') and ("医院" in (seg.word)):
@@ -332,6 +334,7 @@ def _get_injured_name(lines: List[str]) -> List[dict]:
                     Mayfind = False
                     keyObj = re.search(p, subline)
                     if keyObj is not None:
+                        subline = re.sub(r'[\n\s]', '', subline)
                         seg_list = pseg.cut(subline, use_paddle=True)
                         Mayfind = True
                         for seg in seg_list:
@@ -476,7 +479,7 @@ def _get_injured_resdt(lines: List[str],injured_list) -> List[dict]:
     if injured_list=='':
         return injured_list
     res=[r'住|(生活)',r'(居委会)|(!农)村|县']
-    relative=r'父|母|儿|兄|弟|姐|妹|院'
+    relative=r'父|母|儿|兄|弟|姐|妹'
     includeres=r'与|和|跟'
     resdt = False
     breakall = True
@@ -492,22 +495,24 @@ def _get_injured_resdt(lines: List[str],injured_list) -> List[dict]:
                     keyObj_relative=re.search(relative,subline)
                     keyObj_include=re.search(includeres,subline)
                     if (keyObj is not None and keyObj_relative is None) or (keyObj is not None and keyObj_include is not None):
-                        seg_list = pseg.cut(subline, use_paddle=True)
-                        for seg in seg_list:
-                            if seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'LOC':
-                                resdt = True
-                        if resdt:
-                            for injured_info in injured_list:
-                                keyObj=re.search((injured_info["injured_name"]).replace('*','某'),l.replace('*','某'))
-                                keyObj2 = re.search(name, subline)
-                                if keyObj is not None and injured_info["injured_name"] != '':
-                                    injured_info["injured_resident"] = subline
-                                    breakit = False
-                                if breakit and keyObj2 is not None:
-                                    for injured_info in injured_list:
-                                        keyObj=re.search((injured_info["injured_name"]).replace('*','某'),subline.replace('*','某'))
-                                        if keyObj is not None: break
-                                    injured_info["injured_resident"] = subline
+                        if "院" not in subline:
+                            subline = re.sub(r'[\n\s]', '', subline)
+                            seg_list = pseg.cut(subline, use_paddle=True)
+                            for seg in seg_list:
+                                if seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'LOC':
+                                    resdt = True
+                            if resdt:
+                                for injured_info in injured_list:
+                                    keyObj=re.search((injured_info["injured_name"]).replace('*','某'),l.replace('*','某'))
+                                    keyObj2 = re.search(name, subline)
+                                    if keyObj is not None and injured_info["injured_name"] != '':
+                                        injured_info["injured_resident"] = subline
+                                        breakit = False
+                                    if breakit and keyObj2 is not None:
+                                        for injured_info in injured_list:
+                                            keyObj=re.search((injured_info["injured_name"]).replace('*','某'),subline.replace('*','某'))
+                                            if keyObj is not None: break
+                                        injured_info["injured_resident"] = subline
         for injured_info in injured_list:
             if injured_info["injured_resident"] == 'null':
                 breakall = False
