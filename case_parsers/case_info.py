@@ -103,7 +103,6 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
-
     find = False
     plaintiff_info = []
     for line in lines:
@@ -142,29 +141,40 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
         # Have a name, choose the name first; Otherwise select organization
         elif '原告' in line:
             find = True
-            # line = re.sub(r'原告[：:，,]', '', line)
             line = re.sub(r'[\n\s]', '', line)
             sublines = re.split(r'[，：:；。、]', line)
             break_it = 0
             for subline in sublines:
-                keyObj0=re.search(r'原告[：:，,]?.{0,3}\*{1,3}',subline)
+                # 原告：张** 的case 直接插入
+                keyObj0 = re.search(r'原告[：:，,]?.{0,3}\*{1,3}', subline)
                 if keyObj0 is not None:
-                    plaintiff_name=re.sub(r'原告[：:，,]?', '', subline)
+                    plaintiff_name = re.sub(r'原告[：:，,]?', '', subline)
                     if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                         break_it = 1
                         break
+                    if "汉族" in plaintiff_name:
+                        continue
                     plaintiff_info.append({
-                            "plaintiff": plaintiff_name,
-                            "plaintiff_agent": "",
-                            "law_firm": ""
-                        })
+                        "plaintiff": plaintiff_name,
+                        "plaintiff_agent": "",
+                        "law_firm": ""
+                    })
                     break_it = 1
                     break
+                # 否则，jieba分词
                 seg_list = list(pseg.cut(subline, use_paddle=True))
-                for seg in seg_list:
+                for index, seg in enumerate(seg_list):
                     if seg.flag == 'PER' or seg.flag == 'nr':
+                        if "汉族" in seg.word:
+                            continue
+                        plaintiff_name = re.sub(r'[，：；。]', '', seg.word)
+                        try:
+                            if(int(seg_list[index+1].word[0]) in range(10)):
+                                plaintiff_name += seg_list[index+1].word[0]
+                        except Exception:
+                            pass
                         plaintiff_info.append({
-                            "plaintiff": re.sub(r'[，：；。]', '', seg.word),
+                            "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
                             "law_firm": ""
                         })
@@ -175,10 +185,18 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
             if break_it == 0:
                 for subline in sublines:
                     seg_list = list(pseg.cut(subline, use_paddle=True))
-                    for seg in seg_list:
+                    for index, seg in enumerate(seg_list):
                         if seg.flag == 'ORG':
+                            if "汉族" in seg.word:
+                                continue
+                            plaintiff_name = seg.word
+                            try:
+                                if(seg_list[index+1].word[0] in list(range(10))):
+                                    plaintiff_name += seg_list[index+1].word[0]
+                            except IndexError:
+                                pass
                             plaintiff_info.append({
-                                "plaintiff": seg.word,
+                                "plaintiff": plaintiff_name,
                                 "plaintiff_agent": "",
                                 "law_firm": ""
                             })
@@ -186,6 +204,20 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                             break
                     if break_it:
                         break
+            if 1-break_it:
+                pattern = re.compile(
+                    '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
+                keyObj0 = re.search(r'原告[：:]', line)
+                keyObj1 = re.search(r'[男女]', line)
+                keyObj2 = pattern.search(line)
+                if keyObj0 is not None and keyObj1 is not None and keyObj2 is not None:
+                    sublines = re.split(r'原告[：:]', line)
+                    subline = re.split(r'[，：:；。、]', sublines[1])
+                    plaintiff_info.append({
+                        "plaintiff": subline[0],
+                        "plaintiff_agent": "",
+                        "law_firm": ""
+                    })
         else:
             if find:
                 break
@@ -266,12 +298,14 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                     if not skip_it and seg.flag == 'nr':
                         defendant_value = re.sub(r'[，：；。]', '', seg.word)
                         break
-            if defendant_value is not None:
+            if defendant_value is not None and defendant_value != "汉族":
                 for info in defendant_info:
                     if defendant_value == info['defendant']:
                         stop_searching = True
                         break
                 if not stop_searching:
+                    if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
+                        defendant_value = re.sub(r'[男女]', '', defendant_value)
                     defendant_info.append({
                         "defendant": defendant_value,
                         "defendant_agent": "",
