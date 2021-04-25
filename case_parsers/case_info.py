@@ -92,10 +92,16 @@ def get_judge(lines: List[str]) -> str:
 
 
 def get_clerk(lines: List[str]) -> str:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
     for line in reversed(lines):
         line = re.sub(r'　|\s', '', line)
         if '书记员' in line:
-            return re.sub(r'(书记员)|[　\s]+', '', line)
+            seg_list = pseg.cut(line, use_paddle=True)
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    return (re.split(r'(书记员)|[　\s]+', line))[-1]
     return 'Not found'
 
 
@@ -121,12 +127,16 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                 law_firms = re.split(pattern, line)
                 for salt in law_firms:
                     if "律师事务所" in salt:
+                        if salt[-2:] == "律师":# 删掉结尾的‘律师’
+                            salt = salt[0:-2]
                         law_firm = salt
                         break
             else:
                 for seg in seg_list:
                     if seg.flag == 'ORG' and "律" in seg.word:  # 没准叫律所
                         law_firm = re.sub(r'[，：；。]', '', seg.word)
+                        if law_firm[-2:] == "律师":# 删掉结尾的‘律师’
+                            law_firm = law_firm[0:-2]
                         break
             if '共同' in line:
                 for pinfo in plaintiff_info:
@@ -259,12 +269,16 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                 law_firms = re.split(pattern, line)
                 for salt in law_firms:
                     if "律师事务所" in salt:
+                        if salt[-2:] == "律师":# 删掉结尾的‘律师’
+                            salt = salt[0:-2]
                         law_firm = salt
                         break
             else:
                 for seg in seg_list:
                     if seg.flag == 'ORG' and "律" in seg.word:  # 没准叫律所
                         law_firm = re.sub(r'[，：；。]', '', seg.word)
+                        if law_firm[-2:] == "律师":# 删掉结尾的‘律师’
+                            law_firm = law_firm[0:-2]
                         break
             if '共同' in line:
                 for pinfo in defendant_info:
