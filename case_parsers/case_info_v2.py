@@ -511,36 +511,79 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
                             injured_info["injured_work"] = subline
     return injured_list
 
-
 def _get_injured_edu(lines: List[str], injured_list) -> List[dict]:
     if injured_list == '':
         return injured_list
-    education = r'(文[凭化])|(初中)|(小学)|(高中)|(本科)'
+    # education = r'(初中|小学|高中|本科)(?=(文[凭化])|(?<=(文[凭化].*)))' 
+    education = r'初中|小学|高中|本科'
     name = r'(原告)|([被受]害人)|(死者)'
-    for line in lines:
-        keyObj = re.search(education, line)
-        if keyObj is not None:
-            sublines = re.split(r'[：；。]', line)
-            for subline in sublines:
+    breakall = True
+    for edu in education:
+        for line in lines:
+            injured_education='null'
+            line = re.split(r'[。]', line)
+            for subline in line:
                 breakit = True
-                keyObj = re.search(education, subline)
+                # sublines = re.split(r'[：；，]', l)
+                # for subline in sublines:
+                keyObj = re.search(r'学历|文[化凭]', subline)
                 if keyObj is not None:
-                    for injured_info in injured_list:
-                        keyObj = re.search((injured_info["injured_name"]).replace(
-                            '*', '某'), subline.replace('*', '某'))
-                        keyObj2 = re.search(name, subline)
-                        if keyObj is not None and injured_info["injured_name"] != '':
-                            injured_info["injured_education"] = subline
-                            breakit = False
-                        if breakit and keyObj2 is not None:
-                            for injured_info in injured_list:
-                                keyObj = re.search((injured_info["injured_name"]).replace(
-                                    '*', '某'), subline.replace('*', '某'))
-                                if keyObj is not None:
-                                    break
-                            injured_info["injured_education"] = subline
-                        elif keyObj is None and keyObj2 is None and injured_info["injured_education"] == 'null':
-                            injured_info["injured_education"] = subline
+                    keyObj_e = re.search(edu, subline)
+                    if keyObj_e is not None:
+                        for s in subline.split("，"):
+                            if re.search(edu,s) is not None:
+                                injured_education = s
+                                break
+                        for injured_info in injured_list:
+                            keyObj = re.search((injured_info["injured_name"]).replace(
+                                '*', '某'), subline.replace('*', '某'))
+                            keyObj2 = re.search(name, subline)
+                            if keyObj is not None and injured_info["injured_name"] != '':
+                                if injured_info["injured_education"] == 'null':
+                                    injured_info["injured_education"] = injured_education
+                                    breakit = False
+                            if breakit and keyObj2 is not None:
+                                for injured_info in injured_list:
+                                    keyObj = re.search((injured_info["injured_name"]).replace(
+                                        '*', '某'), subline.replace('*', '某'))
+                                    if keyObj is not None:
+                                        break
+                                if injured_info["injured_education"] == 'null':
+                                    injured_info["injured_education"] = injured_education
+                                break
+        for injured_info in injured_list:
+            if injured_info["injured_education"] == 'null':
+                breakall = False
+                break
+        if breakall:
+            return injured_list
+    # for line in lines:
+    #     # keyObj = re.search(education, line)
+    #     keyObj = re.search('文[化凭]', line)
+    #     if keyObj is not None:
+    #         keyObj_edu = re.search(education, line)
+    #         if keyObj_edu is not None:
+    #             sublines = re.split(r'[：；。]', line)
+    #             for subline in sublines:
+    #                 breakit = True
+    #                 keyObj = re.search(education, subline)
+    #                 if keyObj is not None:
+    #                     for injured_info in injured_list:
+    #                         keyObj = re.search((injured_info["injured_name"]).replace(
+    #                             '*', '某'), subline.replace('*', '某'))
+    #                         keyObj2 = re.search(name, subline)
+    #                         if keyObj is not None and injured_info["injured_name"] != '':
+    #                             injured_info["injured_education"] = subline
+    #                             breakit = False
+    #                         if breakit and keyObj2 is not None:
+    #                             for injured_info in injured_list:
+    #                                 keyObj = re.search((injured_info["injured_name"]).replace(
+    #                                     '*', '某'), subline.replace('*', '某'))
+    #                                 if keyObj is not None:
+    #                                     break
+    #                             injured_info["injured_education"] = subline
+    #                         elif keyObj is None and keyObj2 is None and injured_info["injured_education"] == 'null':
+    #                             injured_info["injured_education"] = subline
     return injured_list
 
 
