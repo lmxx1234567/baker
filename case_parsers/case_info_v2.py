@@ -483,41 +483,56 @@ def _get_injured_marri(lines: List[str], injured_list) -> List[dict]:
 
 
 def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
+
     if injured_list == '':
         return injured_list
-    work = r'(工作)|(务农)|(种地)|(工地)|(职员)'
+    works = [r'(工作)|(务农)|(种地)|(工地)|(职员)']
     name = r'(原告)|([被受]害人)|(死者)'
-    for line in lines:
-        keyObj = re.search(work, line)
-        if keyObj is not None:
-            sublines = re.split(r'[：；。，]', line)
-            for subline in sublines:
-                breakit = True
-                keyObj0 = re.search(work, subline)
-                if keyObj0 is not None:
-                    for injured_info in injured_list:
-                        keyObj = re.search((injured_info["injured_name"]).replace(
-                            '*', '某'), subline.replace('*', '某'))
-                        keyObj2 = re.search(name, subline)
-                        if keyObj is not None and injured_info["injured_work"] == 'null':
-                            injured_info["injured_work"] = subline
-                            breakit = False
-                        if breakit and keyObj2 is not None and injured_info["injured_work"] == 'null':
-                            for injured_info in injured_list:
-                                keyObj = re.search((injured_info["injured_name"]).replace(
-                                    '*', '某'), subline.replace('*', '某'))
-                                if keyObj is not None:
+    plaintiff_info = case_info.get_plaintiff_info(lines)
+    for work in works:
+        for line in lines:
+            injured_work='null'
+            line = re.split(r'[。]', line)
+            for subline in line:
+                here_u_a = False
+                keyObj_e = re.search(work, subline)
+                if keyObj_e is not None:
+                    seg_list = pseg.cut(subline, use_paddle=True)
+                    for seg in seg_list:
+                        if seg.flag == 'ORG' or seg.flag == 'LOC' or seg.flag == 'nt' or seg.flag == 's':
+                            here_u_a = True
+                            break
+                    if here_u_a or '务农' in subline:
+                        for s in subline.split("，"):
+                            if re.search(work,s) is not None:
+                                injured_work = s
+                                break
+                        for injured_info in injured_list:
+                            keyObj = re.search((injured_info["injured_name"]).replace(
+                                '*', '某'), subline.replace('*', '某'))
+                            keyObj2 = re.search(name, subline)
+                            if keyObj is not None:
+                                if injured_info["injured_work"] == 'null':
+                                    injured_info["injured_work"] = injured_work
                                     break
-                            injured_info["injured_work"] = subline
+                            if keyObj2 is not None:
+                                if injured_info["injured_work"] == 'null':
+                                    for plaint in plaintiff_info:
+                                        if injured_info["injured_name"]==plaint["plaintiff"] and '原告' in subline:
+                                            injured_info["injured_work"] = injured_work
+                                        elif injured_info["injured_name"]!=plaint["plaintiff"] and '原告' not in subline:
+                                            injured_info["injured_work"] = injured_work
     return injured_list
 
 def _get_injured_edu(lines: List[str], injured_list) -> List[dict]:
     if injured_list == '':
         return injured_list
     # education = r'(初中|小学|高中|本科)(?=(文[凭化])|(?<=(文[凭化].*)))' 
-    education = r'初中|小学|高中|本科'
+    education = [r'初中|小学|高中|本科']
     name = r'(原告)|([被受]害人)|(死者)'
-    breakall = True
     for edu in education:
         for line in lines:
             injured_education='null'
@@ -551,39 +566,6 @@ def _get_injured_edu(lines: List[str], injured_list) -> List[dict]:
                                 if injured_info["injured_education"] == 'null':
                                     injured_info["injured_education"] = injured_education
                                 break
-        for injured_info in injured_list:
-            if injured_info["injured_education"] == 'null':
-                breakall = False
-                break
-        if breakall:
-            return injured_list
-    # for line in lines:
-    #     # keyObj = re.search(education, line)
-    #     keyObj = re.search('文[化凭]', line)
-    #     if keyObj is not None:
-    #         keyObj_edu = re.search(education, line)
-    #         if keyObj_edu is not None:
-    #             sublines = re.split(r'[：；。]', line)
-    #             for subline in sublines:
-    #                 breakit = True
-    #                 keyObj = re.search(education, subline)
-    #                 if keyObj is not None:
-    #                     for injured_info in injured_list:
-    #                         keyObj = re.search((injured_info["injured_name"]).replace(
-    #                             '*', '某'), subline.replace('*', '某'))
-    #                         keyObj2 = re.search(name, subline)
-    #                         if keyObj is not None and injured_info["injured_name"] != '':
-    #                             injured_info["injured_education"] = subline
-    #                             breakit = False
-    #                         if breakit and keyObj2 is not None:
-    #                             for injured_info in injured_list:
-    #                                 keyObj = re.search((injured_info["injured_name"]).replace(
-    #                                     '*', '某'), subline.replace('*', '某'))
-    #                                 if keyObj is not None:
-    #                                     break
-    #                             injured_info["injured_education"] = subline
-    #                         elif keyObj is None and keyObj2 is None and injured_info["injured_education"] == 'null':
-    #                             injured_info["injured_education"] = subline
     return injured_list
 
 

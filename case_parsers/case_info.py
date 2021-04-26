@@ -13,13 +13,14 @@ def get_case_name(lines: List[str]) -> str:
     for line in lines:
         line = re.sub(r'　|\s', '', line)
         for trial_procedure in schema['properties']['document_type']['enum']:
-            if trial_procedure in line:
+            if trial_procedure in line[-6:]:
                 return line
     return 'Not found'
 
 
 def get_case_id(lines: List[str]) -> str:
     for line in lines:
+        line=re.sub(r'\s','',line)
         matchObj = re.search(r'[（|()]\d{4}[）|)].+号', line)
         if matchObj is not None:
             return matchObj.group()
@@ -39,6 +40,7 @@ def get_cause(lines: List[str]) -> str:
         causes = f.readlines()
         causes = [cause[:-1] for cause in causes]
         for line in lines:
+            line=re.sub(r'\s','',line)
             for cause in causes:
                 if cause in line:
                     return cause
@@ -56,7 +58,7 @@ def get_case_type(lines: List[str]) -> str:
     case_id = get_case_id(lines)
     all_casetype = ['民事', '刑事', '行政', '经济', '非诉讼']
     with open('data/formatted/case_type.csv', encoding='UTF-8') as f:
-        reader = csv.reader(f,)
+        reader = csv.reader(f)
         for row in reader:
             matchObj = re.search(r'\d('+row[1]+r')\d', case_id)
             if matchObj is not None:
@@ -64,6 +66,10 @@ def get_case_type(lines: List[str]) -> str:
                     if type in row[0]:
                         return type
                 return row[0]
+    case_name = get_case_name(lines)
+    for type in all_casetype:
+        if type in case_name:
+            return type
     return 'Not found'
 
 
@@ -77,6 +83,7 @@ def get_court(lines: List[str]) -> str:
 
 def get_document_type(lines: List[str]) -> str:
     for line in lines:
+        line=re.sub(r'\s','',line)
         for dtype in schema['properties']['document_type']['enum']:
             if dtype in line:
                 return dtype
@@ -127,7 +134,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                 law_firms = re.split(pattern, line)
                 for salt in law_firms:
                     if "律师事务所" in salt:
-                        if salt[-2:] == "律师":# 删掉结尾的‘律师’
+                        if salt[-2:] == "律师":  # 删掉结尾的‘律师’
                             salt = salt[0:-2]
                         law_firm = salt
                         break
@@ -135,7 +142,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                 for seg in seg_list:
                     if seg.flag == 'ORG' and "律" in seg.word:  # 没准叫律所
                         law_firm = re.sub(r'[，：；。]', '', seg.word)
-                        if law_firm[-2:] == "律师":# 删掉结尾的‘律师’
+                        if law_firm[-2:] == "律师":  # 删掉结尾的‘律师’
                             law_firm = law_firm[0:-2]
                         break
             if '共同' in line:
@@ -269,7 +276,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                 law_firms = re.split(pattern, line)
                 for salt in law_firms:
                     if "律师事务所" in salt:
-                        if salt[-2:] == "律师":# 删掉结尾的‘律师’
+                        if salt[-2:] == "律师":  # 删掉结尾的‘律师’
                             salt = salt[0:-2]
                         law_firm = salt
                         break
@@ -277,7 +284,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                 for seg in seg_list:
                     if seg.flag == 'ORG' and "律" in seg.word:  # 没准叫律所
                         law_firm = re.sub(r'[，：；。]', '', seg.word)
-                        if law_firm[-2:] == "律师":# 删掉结尾的‘律师’
+                        if law_firm[-2:] == "律师":  # 删掉结尾的‘律师’
                             law_firm = law_firm[0:-2]
                         break
             if '共同' in line:
