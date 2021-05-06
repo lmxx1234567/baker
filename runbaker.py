@@ -10,7 +10,7 @@ import case_parsers
 input_path = ""
 output_path = ""
 attrs = ['all', 'case_name', 'case_id', 'year', 'cause', 'trial_procedure',
-         'case_type', 'court', 'document_type', 'judge', 'clerk', 'plaintiff_info', 'defendant_info', 'case_summary','filing_date','judgment_date','discharge_date','city_class','hospital','diagnosis','previous','accident_date','disable_assessment_date','injured_info','']
+         'case_type', 'court', 'document_type', 'judge', 'clerk', 'plaintiff_info', 'defendant_info', 'case_summary','filing_date','judgment_date','discharge_date','city_class','hospital','diagnosis','previous','accident_date','disable_assessment_date','injured_info','plaintiff_more_info','']
 
 def process_one(file_name,lines):
     field_dict = {}

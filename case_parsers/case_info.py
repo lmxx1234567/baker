@@ -20,7 +20,7 @@ def get_case_name(lines: List[str]) -> str:
 
 def get_case_id(lines: List[str]) -> str:
     for line in lines:
-        line=re.sub(r'\s','',line)
+        line = re.sub(r'\s', '', line)
         matchObj = re.search(r'[（|()]\d{4}[）|)].+号', line)
         if matchObj is not None:
             return matchObj.group()
@@ -40,7 +40,7 @@ def get_cause(lines: List[str]) -> str:
         causes = f.readlines()
         causes = [cause[:-1] for cause in causes]
         for line in lines:
-            line=re.sub(r'\s','',line)
+            line = re.sub(r'\s', '', line)
             for cause in causes:
                 if cause in line:
                     return cause
@@ -83,7 +83,7 @@ def get_court(lines: List[str]) -> str:
 
 def get_document_type(lines: List[str]) -> str:
     for line in lines:
-        line=re.sub(r'\s','',line)
+        line = re.sub(r'\s', '', line)
         for dtype in schema['properties']['document_type']['enum']:
             if dtype in line:
                 return dtype
@@ -119,23 +119,29 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
     find = False
     plaintiff_info = []
     for line in lines:
-        if '委托诉讼代理人' in line:
-            line = re.sub(r'委托诉讼代理人[：:，,]', '', line)
+        # if '委托诉讼代理人' in line or '委托代理人' in line:
+        if re.search(r'诉讼代理人|委托诉讼代理人|委托代理人', line) is not None:
+            line = re.sub(r'(委托诉讼代理人|诉讼代理人|委托代理人)[：:，,]', '', line)
             line = re.sub(r'[\n\s]', '', line)
             seg_list = pseg.cut(line, use_paddle=True)
             plaintiff_agent = law_firm = ''
-            for seg in seg_list:
-                if seg.flag == 'PER' or seg.flag == 'nr':
-                    plaintiff_agent = re.sub(r'[，：；。]', '', seg.word)
-                    break
+            line_tmp = re.split(r'[，：:；。、]', line)
+            for sline in line_tmp:
+                seg_lists = pseg.cut(sline, use_paddle=True)
+                for seg in seg_lists:
+                    if seg.flag == 'PER' or seg.flag == 'nr':
+                        plaintiff_agent = re.sub(r'[，：；。]', '', seg.word)
+                        break
             # find law_firm
-            if "律师事务所" in line:
-                pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …（）]'
-                law_firms = re.split(pattern, line)
+            if "律师事务所" in line or "法律服务所" in line:
+                # pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …]'
+                law_firms = re.split(r'[，：:；。、]', line)
                 for salt in law_firms:
-                    if "律师事务所" in salt:
+                    if "律师事务所" in salt or "法律服务所" in salt:
                         if salt[-2:] == "律师":  # 删掉结尾的‘律师’
                             salt = salt[0:-2]
+                        elif salt[-5:] == "法律工作者":  # 删掉结尾的‘法律工作者’
+                            salt = salt[0:-5]
                         law_firm = salt
                         break
             else:
@@ -144,8 +150,10 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         law_firm = re.sub(r'[，：；。]', '', seg.word)
                         if law_firm[-2:] == "律师":  # 删掉结尾的‘律师’
                             law_firm = law_firm[0:-2]
+                        elif law_firm[-5:] == "法律工作者":  # 删掉结尾的‘法律工作者’
+                            law_firm = law_firm[0:-5]
                         break
-            if '共同' in line:
+            if '共同' in line or re.search(r'(二|三|四|五|六|七|八)原告',line) is not None:
                 for pinfo in plaintiff_info:
                     if pinfo['plaintiff_agent'] == '':
                         pinfo['plaintiff_agent'] = plaintiff_agent
@@ -156,7 +164,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                     plaintiff_info[-1]['plaintiff_agent'] = plaintiff_agent
                     plaintiff_info[-1]['law_firm'] = law_firm
         # Have a name, choose the name first; Otherwise select organization
-        elif '原告' in line:
+        elif '原告' in line and re.search(r'共同委托|法定代理人|反诉原告', line) is None:
             find = True
             line = re.sub(r'[\n\s]', '', line)
             sublines = re.split(r'[，：:；。、]', line)
@@ -235,6 +243,8 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         "plaintiff_agent": "",
                         "law_firm": ""
                     })
+        elif '法定代理人' in line:
+            continue
         else:
             if find:
                 break
@@ -296,7 +306,8 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
             elif len(defendant_info) > 0:
                 defendant_info[-1]['defendant_agent'] = defendant_agent
                 defendant_info[-1]['law_firm'] = law_firm
-        elif '被告' in line:
+        # elif '被告' in line:
+        elif '被告' in line and re.search(r'共同委托|法定代理人|反诉被告', line) is None:
             find = True
             skip_it = False
             defendant_value = None
