@@ -7,7 +7,7 @@ from . import schema, similar, SEQ_MODEL_AVALIABLE
 from case_parsers.seq_match import seq_match, seq_match_multiple
 
 PLAINTIFF_NAME = []
-
+Nationality=r'汉族|回族'
 
 def get_case_name(lines: List[str]) -> str:
     for line in lines:
@@ -177,7 +177,8 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                     if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                         break_it = 1
                         break
-                    if "汉族" in plaintiff_name:
+                    # if "汉族" in plaintiff_name:
+                    if re.search(Nationality,plaintiff_name) is not None:
                         continue
                     plaintiff_info.append({
                         "plaintiff": plaintiff_name,
@@ -190,7 +191,8 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                 seg_list = list(pseg.cut(subline, use_paddle=True))
                 for index, seg in enumerate(seg_list):
                     if seg.flag == 'PER' or seg.flag == 'nr':
-                        if "汉族" in seg.word:
+                        # if "汉族" in seg.word:
+                        if re.search(Nationality,seg.word) is not None:
                             continue
                         plaintiff_name = re.sub(r'[，：；。]', '', seg.word)
                         try:
@@ -212,7 +214,8 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                     seg_list = list(pseg.cut(subline, use_paddle=True))
                     for index, seg in enumerate(seg_list):
                         if seg.flag == 'ORG':
-                            if "汉族" in seg.word:
+                            # if "汉族" in seg.word or "回族" in seg.word:
+                            if re.search(Nationality,seg.word) is not None:
                                 continue
                             plaintiff_name = seg.word
                             try:
@@ -232,17 +235,23 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
             if 1-break_it:
                 pattern = re.compile(
                     '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
-                keyObj0 = re.search(r'原告[：:]', line)
+                keyObj0 = re.search(r'原告[：:]?', line)
                 keyObj1 = re.search(r'[男女]', line)
                 keyObj2 = pattern.search(line)
                 if keyObj0 is not None and keyObj1 is not None and keyObj2 is not None:
-                    sublines = re.split(r'原告[：:]', line)
-                    subline = re.split(r'[，：:；。、]', sublines[1])
-                    plaintiff_info.append({
-                        "plaintiff": subline[0],
-                        "plaintiff_agent": "",
-                        "law_firm": ""
-                    })
+                    sublines = re.split(r'原告[：:]?', line)
+                    try:
+                        sublines_split = sublines[1]
+                        is_splite = True
+                    except Exception:
+                        is_splite = False
+                    if is_splite:
+                        subline = re.split(r'[，：:；。、]', sublines_split)
+                        plaintiff_info.append({
+                            "plaintiff": subline[0],
+                            "plaintiff_agent": "",
+                            "law_firm": ""
+                        })
         elif '法定代理人' in line:
             continue
         else:
@@ -311,7 +320,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
             find = True
             skip_it = False
             defendant_value = None
-            line = re.sub(r'被告[：:，,]', '', line)
+            line = re.sub(r'被告[：:，,]?', '', line)
             line = re.sub(r'[\n\s]', '', line)
             seg_list = list(pseg.cut(line, use_paddle=True))
             for seg in seg_list:
@@ -330,7 +339,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                     if not skip_it and seg.flag == 'nr':
                         defendant_value = re.sub(r'[，：；。]', '', seg.word)
                         break
-            if defendant_value is not None and defendant_value != "汉族":
+            if defendant_value is not None and defendant_value != "汉族" and defendant_value != "回族":
                 for info in defendant_info:
                     if defendant_value == info['defendant']:
                         stop_searching = True
@@ -344,6 +353,27 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         "law_firm": ""
                     })
                     defendant_value = None
+            if len(defendant_info) == 0:
+                pattern = re.compile(
+                    '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
+                keyObj0 = re.search(r'被告[：:]?', line)
+                keyObj1 = re.search(r'[男女]', line)
+                keyObj2 = pattern.search(line)
+                if keyObj0 is not None and keyObj1 is not None and keyObj2 is not None:
+                    sublines = re.split(r'被告[：:]?', line)
+                    try:
+                        sublines_split = sublines[1]
+                        is_splite = True
+                    except Exception:
+                        is_splite = False
+                    if is_splite:
+                        subline = re.split(r'[，：:；。、]', sublines_split)
+                        defendant_value = subline[0]
+                        defendant_info.append({
+                        "defendant": defendant_value,
+                        "defendant_agent": "",
+                        "law_firm": ""
+                    })
         else:
             if find:
                 if not_found > 1:
