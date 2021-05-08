@@ -81,8 +81,7 @@ def get_judgment_date(lines: List[str]) -> str:
     return judgment_date
 
 # 出院日期:于...出院;...出院
-
-
+# 若出现同年，则与事故日期保持一致
 def get_discharge_date(lines: List[str]) -> str:
     discharge_date = None
     for line in lines:
@@ -91,6 +90,12 @@ def get_discharge_date(lines: List[str]) -> str:
             for subline in line:
                 if "出院" in subline:
                     discharge_date = pattern.search(subline)
+                    if discharge_date is None and "同年" in subline:
+                        tmpyear=get_accident_date(lines)
+                        if tmpyear is not None:
+                            tmpyear=tmpyear.split("-")[0]+"年"
+                            subline2=re.sub("同年",tmpyear,subline)
+                            discharge_date = pattern.search(subline2)
                 if discharge_date is not None:
                     break
         if discharge_date is not None:
@@ -276,8 +281,9 @@ def get_accident_date(lines: List[str]) -> str:
 
             keyObj = re.search(p, line)
             if keyObj is not None:
-                line = (re.split(p, line))[1]
-                sublines0 = re.split(r'[，：:；。]', line)
+                line_spl = re.split(p, line)
+                if line_spl[-1] is not None:
+                    line_spl = re.split(r'[，：:；。]', line_spl[-1])
                 try:
                     if '\n' in line[1]:
                         nextline = True
@@ -286,12 +292,13 @@ def get_accident_date(lines: List[str]) -> str:
                     nextline = True
                     continue
                 torline += 1
-                for subline in sublines0:
-                    accident_date = pattern_accdate.search(subline)
-                    if acc_19 is None:
-                        acc_19 = pattern.search(subline)
-                    if accident_date is not None:
-                        return date_format(accident_date[0])
+                for subline in line_spl:
+                    if subline is not None:
+                        accident_date = pattern_accdate.search(subline)
+                        if acc_19 is None:
+                            acc_19 = pattern.search(subline)
+                        if accident_date is not None:
+                            return date_format(accident_date[0])
             if torline > 4 and acc_19 is not None:
                 return date_format(acc_19[0])
 
@@ -537,27 +544,27 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
 
     if injured_list == []:
         return injured_list
-    works = [r'(工作)|(务农)|(种地)|(工地)|(职员)']
+    works = [r'务农|种地|工地|职员|保安|兼职|无业游民|无工作']
     name = r'(原告)|([被受]害人)|(死者)'
     plaintiff_info = case_info.get_plaintiff_info(lines)
     for work in works:
         for line in lines:
             injured_work = 'null'
-            line = re.split(r'[。]', line)
+            line = re.split(r'[。；，：]', line)
             for subline in line:
                 here_u_a = False
                 keyObj_e = re.search(work, subline)
-                if keyObj_e is not None:
+                keyObj_justwork = re.search(r'工作', subline)
+                if keyObj_justwork is not None:
+                    if "无工作" in subline:
+                        here_u_a = True
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
                         if seg.flag == 'ORG' or seg.flag == 'LOC' or seg.flag == 'nt' or seg.flag == 's':
                             here_u_a = True
                             break
-                    if here_u_a or '务农' in subline:
-                        for s in subline.split("，"):
-                            if re.search(work, s) is not None:
-                                injured_work = s
-                                break
+                    if here_u_a or keyObj_e is not None:
+                        injured_work = subline
                         for injured_info in injured_list:
                             keyObj = re.search((injured_info["injured_name"]).replace(
                                 '*', '某'), subline.replace('*', '某'))

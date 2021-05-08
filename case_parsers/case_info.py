@@ -7,7 +7,8 @@ from . import schema, similar, SEQ_MODEL_AVALIABLE
 from case_parsers.seq_match import seq_match, seq_match_multiple
 
 PLAINTIFF_NAME = []
-Nationality=r'汉族|回族'
+Nationality = r'汉族|回族'
+
 
 def get_case_name(lines: List[str]) -> str:
     for line in lines:
@@ -153,7 +154,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         elif law_firm[-5:] == "法律工作者":  # 删掉结尾的‘法律工作者’
                             law_firm = law_firm[0:-5]
                         break
-            if '共同' in line or re.search(r'(二|三|四|五|六|七|八)原告',line) is not None:
+            if '共同' in line or re.search(r'(二|三|四|五|六|七|八)原告', line) is not None:
                 for pinfo in plaintiff_info:
                     if pinfo['plaintiff_agent'] == '':
                         pinfo['plaintiff_agent'] = plaintiff_agent
@@ -178,12 +179,17 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         break_it = 1
                         break
                     # if "汉族" in plaintiff_name:
-                    if re.search(Nationality,plaintiff_name) is not None:
+                    if re.search(Nationality, plaintiff_name) is not None:
                         continue
+                    if "公司" in plaintiff_name:
+                        is_company = 1
+                    else:
+                        is_company = 0
                     plaintiff_info.append({
                         "plaintiff": plaintiff_name,
                         "plaintiff_agent": "",
-                        "law_firm": ""
+                        "law_firm": "",
+                        "is_company": is_company
                     })
                     break_it = 1
                     break
@@ -192,7 +198,7 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                 for index, seg in enumerate(seg_list):
                     if seg.flag == 'PER' or seg.flag == 'nr':
                         # if "汉族" in seg.word:
-                        if re.search(Nationality,seg.word) is not None:
+                        if re.search(Nationality, seg.word) is not None:
                             continue
                         plaintiff_name = re.sub(r'[，：；。]', '', seg.word)
                         try:
@@ -200,10 +206,15 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                                 plaintiff_name += seg_list[index+1].word[0]
                         except Exception:
                             pass
+                        if "公司" in plaintiff_name:
+                            is_company = 1
+                        else:
+                            is_company = 0
                         plaintiff_info.append({
                             "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
-                            "law_firm": ""
+                            "law_firm": "",
+                            "is_company": is_company
                         })
                         break_it = 1
                         break
@@ -215,18 +226,23 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                     for index, seg in enumerate(seg_list):
                         if seg.flag == 'ORG':
                             # if "汉族" in seg.word or "回族" in seg.word:
-                            if re.search(Nationality,seg.word) is not None:
+                            if re.search(Nationality, seg.word) is not None:
                                 continue
                             plaintiff_name = seg.word
                             try:
                                 if(seg_list[index+1].word[0] in list(range(10))):
                                     plaintiff_name += seg_list[index+1].word[0]
-                            except IndexError:
+                            except Exception:
                                 pass
+                            if "公司" in plaintiff_name:
+                                is_company = 1
+                            else:
+                                is_company = 0
                             plaintiff_info.append({
                                 "plaintiff": plaintiff_name,
                                 "plaintiff_agent": "",
-                                "law_firm": ""
+                                "law_firm": "",
+                                "is_company": is_company
                             })
                             break_it = 1
                             break
@@ -247,10 +263,16 @@ def get_plaintiff_info(lines: List[str]) -> List[dict]:
                         is_splite = False
                     if is_splite:
                         subline = re.split(r'[，：:；。、]', sublines_split)
+                        plaintiff = subline[0]
+                        if "公司" in plaintiff:
+                            is_company = 1
+                        else:
+                            is_company = 0
                         plaintiff_info.append({
-                            "plaintiff": subline[0],
+                            "plaintiff": plaintiff,
                             "plaintiff_agent": "",
-                            "law_firm": ""
+                            "law_firm": "",
+                            "is_company": is_company
                         })
         elif '法定代理人' in line:
             continue
@@ -370,10 +392,10 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         subline = re.split(r'[，：:；。、]', sublines_split)
                         defendant_value = subline[0]
                         defendant_info.append({
-                        "defendant": defendant_value,
-                        "defendant_agent": "",
-                        "law_firm": ""
-                    })
+                            "defendant": defendant_value,
+                            "defendant_agent": "",
+                            "law_firm": ""
+                        })
         else:
             if find:
                 if not_found > 1:
@@ -593,7 +615,8 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                     basis_matchs = re.finditer(
                         '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', match_line)
                     for basis_match in basis_matchs:
-                        case['basis'].append(basis_match.group())
+                        if re.search(r'法|条例', basis_match.group()) is not None:
+                            case['basis'].append(basis_match.group())
                 case['judgement'] = str(
                     None if approve + disapprove == 0 else round(approve/(approve+disapprove)))
             return case_summary
@@ -630,11 +653,31 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         basis_matchs = re.finditer(
             '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', lines[line_num])
         for basis_match in basis_matchs:
-            case_summary[contro_num]['basis'].append(basis_match.group())
+            if re.search(r'法|条', basis_match.group()) is not None:
+                case_summary[contro_num]['basis'].append(basis_match.group())
         if contro_num >= last_contro:
             break
-
+            # continue
     case_summary[contro_num]["controversy"] = controversies[contro_num]['con']
     case_summary[contro_num]['judgement'] = str(None if approve +
                                                 disapprove == 0 else round(approve/(approve+disapprove)))
+    # 增加共同依托法条
+    if len(case_summary)>0:
+        common_basis=[]
+        sta_index=len(lines)-1
+        for index,line in enumerate(lines):
+            if "综上所述" in line or index>=sta_index:
+                if "综上所述" in line:
+                    sta_index=index
+                common_basis_matchs= re.finditer(
+            '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', line)
+                for common_basis_match in common_basis_matchs:
+                    if re.search(r'法院|国', common_basis_match.group()) is not None:
+                        if common_basis_match.group() in common_basis:
+                            continue
+                        common_basis.append(common_basis_match.group())
+        if len(common_basis)>0:
+            for con in case_summary:
+                if len(con['basis'])==0:
+                    con['basis']=common_basis
     return case_summary
