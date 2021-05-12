@@ -82,6 +82,8 @@ def get_judgment_date(lines: List[str]) -> str:
 
 # 出院日期:于...出院;...出院
 # 若出现同年，则与事故日期保持一致
+
+
 def get_discharge_date(lines: List[str]) -> str:
     discharge_date = None
     for line in lines:
@@ -91,10 +93,10 @@ def get_discharge_date(lines: List[str]) -> str:
                 if "出院" in subline:
                     discharge_date = pattern.search(subline)
                     if discharge_date is None and "同年" in subline:
-                        tmpyear=get_accident_date(lines)
+                        tmpyear = get_accident_date(lines)
                         if tmpyear is not None:
-                            tmpyear=tmpyear.split("-")[0]+"年"
-                            subline2=re.sub("同年",tmpyear,subline)
+                            tmpyear = tmpyear.split("-")[0]+"年"
+                            subline2 = re.sub("同年", tmpyear, subline)
                             discharge_date = pattern.search(subline2)
                 if discharge_date is not None:
                     break
@@ -544,18 +546,18 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
 
     if injured_list == []:
         return injured_list
-    works = [r'务农|种地|工地|职员|保安|兼职|无业游民|无工作']
+    works = [r'务农|种地|工地|职员|保安|兼职|无业|无工作']
     name = r'(原告)|([被受]害人)|(死者)'
     plaintiff_info = case_info.get_plaintiff_info(lines)
     for work in works:
         for line in lines:
             injured_work = 'null'
-            line = re.split(r'[。；，：]', line)
-            for subline in line:
+            sublines = re.split(r'[。；，：]', line)
+            for index,subline in enumerate(sublines):
                 here_u_a = False
                 keyObj_e = re.search(work, subline)
                 keyObj_justwork = re.search(r'工作', subline)
-                if keyObj_justwork is not None:
+                if keyObj_justwork is not None or keyObj_e is not None:
                     if "无工作" in subline:
                         here_u_a = True
                     seg_list = pseg.cut(subline, use_paddle=True)
@@ -566,9 +568,12 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
                     if here_u_a or keyObj_e is not None:
                         injured_work = subline
                         for injured_info in injured_list:
-                            keyObj = re.search((injured_info["injured_name"]).replace(
-                                '*', '某'), subline.replace('*', '某'))
-                            keyObj2 = re.search(name, subline)
+                            for i in range(0,7):
+                                keyObj = re.search((injured_info["injured_name"]).replace(
+                                    '*', '某'), sublines[index-i].replace('*', '某'))
+                                keyObj2 = re.search(name, sublines[index-i])
+                                if keyObj is not None or keyObj2 is not None:
+                                    break
                             if keyObj is not None:
                                 if injured_info["injured_work"] == 'null':
                                     injured_info["injured_work"] = injured_work
@@ -598,7 +603,10 @@ def _get_injured_edu(lines: List[str], injured_list) -> List[dict]:
                 keyObj = re.search(education, subline)
                 keyObj_wenhua = re.search(r'文[凭化盲]', subline)
                 if keyObj is not None and keyObj_wenhua is not None:
-                    tmp_edu = keyObj[0]+keyObj_wenhua[0]
+                    if keyObj[0] == keyObj_wenhua[0]:
+                        tmp_edu = keyObj[0]
+                    else:
+                        tmp_edu = keyObj[0]+keyObj_wenhua[0]
                     for injured_info in injured_list:
                         keyObj_name = re.search((injured_info["injured_name"]).replace(
                             '*', '某'), subline.replace('*', '某'))
@@ -611,7 +619,10 @@ def _get_injured_edu(lines: List[str], injured_list) -> List[dict]:
                                 keyObj = re.search(education, sub)
                                 keyObj_wenhua = re.search(r'文[凭化盲]', sub)
                                 if keyObj is not None and keyObj_wenhua is not None:
-                                    tmp_edu = keyObj[0]+keyObj_wenhua[0]
+                                    if keyObj[0] == keyObj_wenhua[0]:
+                                        tmp_edu = keyObj[0]
+                                    else:
+                                        tmp_edu = keyObj[0]+keyObj_wenhua[0]
                                     injured_info["injured_education"] = tmp_edu
                                     breakit = True
                                     break
@@ -633,7 +644,7 @@ def _get_injured_resdt(lines: List[str], injured_list) -> List[dict]:
     jieba.enable_paddle()
     if injured_list == []:
         return injured_list
-    res = [r'(住(?![院宿]))|生活(?!费|来源|水平)']  # ,r'(居委会)|[^农]村|县'
+    res = [r'(住(?![院宿]))|生活(?!费|来源|水平|自理)']  # ,r'(居委会)|[^农]村|县'
     relative = r'父|母|儿|兄|弟|姐|妹'
     includeres = r'与|和|跟'
     resdt = False
