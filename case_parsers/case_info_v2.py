@@ -21,6 +21,8 @@ replace_lists = [{'年': '-', '月': '-', '日': '', '\.': '-', '/': '-', '号':
                  {'三十一': '31', '三十': '30', '二十九': '29', '二十八': '28', '二十七': '27', '二十六': '26', '二十五': '25', '二十四': '24', '二十三': '23', '二十二': '22', '二十一': '21', '二十': '20', '十九': '19', '十八': '18', '十七': '17', '十六': '16', '十五': '15', '十四': '14', '十三': '13', '十二': '12', '十一': '11', '十': '10', '九': '09', '八': '08', '七': '07', '六': '06', '五': '05', '四': '04', '三': '03', '二': '02', '一': '01', '元': '01'}]
 pattern2 = re.compile(
     '[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
+capital_num = r'九|八|七|六|五|四|三|二|一|元|○|〇|零|\d'
+capital_kuohao = r'（[九八七六五四三二一元○〇零\d]）'
 
 
 def date_format(raw_date: str) -> str:
@@ -140,33 +142,66 @@ def get_hospital(lines: List[str]) -> List[str]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
+    # 读医院列表
+    all_hos_list=[]
+    all_hos = 'data/formatted/all_hos.txt'
+    file = open(all_hos, 'r')
+    line = file.readlines()
+    line=re.sub(r'\'','',line[0])
+    all_hos_list=re.split(', ',line)
+    file.close()
     treatment = None
     transfer = None
     treatment_hospital = []
     transfer_hospital = []
     for line in lines:
-        if "医院" in line:
-            line = re.split(r'[，：；。\s+]', line)
+        if re.search(r'医院|卫生院',line) is not None:
+            line = re.sub(r'[\n\s]', '', line)
+            line = re.split(r'[，：；＋。、.《》]', line)
             for subline in line:
-                if "医院" in subline:
-                    subline = re.sub(r'[\n\s]', '', subline)
+                if re.search(r'医院|卫生院',subline) is not None:
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
-                        if (seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG') and ("医院" in (seg.word)):
+                        if (seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG') and (re.search(r'医院|卫生院',seg.word) is not None):
                             if "转" in subline:
-                                # transfer = re.sub(r'[，：；。]', '', seg.word)
-                                transfer = (re.split("医院", seg.word))[0]+"医院"
+                                transfer = (re.split(r'医院|卫生院', seg.word))[0]+re.search(r'医院|卫生院',seg.word)[0]
+                                if re.search(r'（|经|至|\d{1}\.', transfer[0]) is not None:
+                                    transfer = transfer[1:]
+                                if bool([True for h_info in transfer_hospital if transfer in h_info]):
+                                    continue
+                                # if transfer in all_hos_list:
+                                #     transfer_hospital.append(transfer)
+                                # elif re.search(r'第|市|县|区|人民', transfer) is not None:
+                                #     transfer_hospital.append(transfer)
+                                # elif re.search(capital_num, transfer) is not None:
                                 transfer_hospital.append(transfer)
                             else:
-                                # treatment = re.sub(r'[，：；。]', '', seg.word)
-                                treatment = (re.split("医院", seg.word))[0]+"医院"
+                                treatment = (re.split(r'医院|卫生院', seg.word))[0]+re.search(r'医院|卫生院',seg.word)[0]
+                                if re.search(r'（|经|至|\d{1}\.|）', treatment[0:3]) is not None:
+                                    # treatments = re.split(r'（|经|至|(\d{1}\.)',treatment)
+                                    # if len(treatments)<2:
+                                    #     treatment=treatments[1]
+                                    # else:
+                                    treatment = re.sub(capital_kuohao,'',treatment)
+                                    treatment = re.sub(r'（|经|至|\d\.|）','',treatment)
+                                if bool([True for h_info in treatment_hospital if treatment in h_info]) or re.search(r'受伤|送', treatment) is not None:
+                                    continue
+                                if re.search(r'（', treatment) is not None and re.search(r'）', treatment) is None:
+                                    continue
+                                if re.search(r'（', treatment) is None and re.search(r'）', treatment) is not None:
+                                    continue
+                                # if treatment in all_hos_list:
+                                #     treatment_hospital.append(treatment)
+                                # elif re.search(r'第|市|县|区|人民', treatment) is not None:
+                                #     treatment_hospital.append(treatment)
+                                # elif re.search(capital_num, treatment) is not None:
                                 treatment_hospital.append(treatment)
-        if transfer_hospital:
-            transfer_hospital = list(set(transfer_hospital))
-            return transfer_hospital
-        if treatment_hospital:
-            treatment_hospital = list(set(treatment_hospital))
-            return treatment_hospital
+    if transfer_hospital:
+        transfer_hospital = list(set(transfer_hospital))
+        return transfer_hospital
+    if treatment_hospital:
+        treatment_hospital = list(set(treatment_hospital))
+        return treatment_hospital
     return treatment_hospital.append("None")
 
 
@@ -553,7 +588,7 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
         for line in lines:
             injured_work = 'null'
             sublines = re.split(r'[。；，：]', line)
-            for index,subline in enumerate(sublines):
+            for index, subline in enumerate(sublines):
                 here_u_a = False
                 keyObj_e = re.search(work, subline)
                 keyObj_justwork = re.search(r'工作', subline)
@@ -568,7 +603,7 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
                     if here_u_a or keyObj_e is not None:
                         injured_work = subline
                         for injured_info in injured_list:
-                            for i in range(0,7):
+                            for i in range(0, 7):
                                 keyObj = re.search((injured_info["injured_name"]).replace(
                                     '*', '某'), sublines[index-i].replace('*', '某'))
                                 keyObj2 = re.search(name, sublines[index-i])
