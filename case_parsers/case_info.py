@@ -113,7 +113,7 @@ def get_clerk(lines: List[str]) -> str:
     return 'Not found'
 
 
-def get_plaintiff_info(lines: List[str]) -> List[dict]:
+def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
