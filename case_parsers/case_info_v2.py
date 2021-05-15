@@ -37,21 +37,52 @@ def date_format(raw_date: str) -> str:
         mon_day = re.sub(key, value, mon_day)
     format_date = year+mon_day
     tmp = format_date.split('-')
-    format_date = datetime.date(int(tmp[0]), int(tmp[1]), int(tmp[2])).strftime(
+    try:
+        format_date = datetime.date(int(tmp[0]), int(tmp[1]), int(tmp[2])).strftime(
         "%{0}-%m-%d".format('Y' if yearlen == 4 else 'y'))
+    except ValueError as e:
+        return raw_date
     return format_date
 
+# trial_date审理日期:‘审理’关键字段落寻找日期
+def get_trial_date(lines: List[str]) -> str:
+    trial_date = None
+    for line in lines:
+        if re.search(r'审理|开庭',line) is not None:
+            line = re.sub(r'\s','', line)
+            line = re.split(r'[，：；。]', line)
+            for subline in line:
+                if "审理" in subline:
+                    trial_date = pattern.search(subline)
+                if trial_date is None and "同年" in subline:
+                        tmpyear = get_accident_date(lines)
+                        if tmpyear is not None:
+                            tmpyear = tmpyear.split("-")[0]+"年"
+                            subline2 = re.sub("同年", tmpyear, subline)
+                            trial_date = pattern.search(subline2)
+                if trial_date is not None:
+                    break
+        if trial_date is not None:
+            trial_date = date_format(trial_date[0])
+            break
+    return trial_date
+
 # filing_date立案日期:‘立案’关键字段落寻找日期
-
-
 def get_filing_date(lines: List[str]) -> str:
     filing_date = None
     for line in lines:
         if "立案" in line:
+            line = re.sub(r'\s','', line)
             line = re.split(r'[，：；。]', line)
             for subline in line:
                 if "立案" in subline:
                     filing_date = pattern.search(subline)
+                if filing_date is None and "同年" in subline:
+                        tmpyear = get_accident_date(lines)
+                        if tmpyear is not None:
+                            tmpyear = tmpyear.split("-")[0]+"年"
+                            subline2 = re.sub("同年", tmpyear, subline)
+                            filing_date = pattern.search(subline2)
                 if filing_date is not None:
                     break
         if filing_date is not None:
@@ -59,6 +90,7 @@ def get_filing_date(lines: List[str]) -> str:
             break
         else:
             if "受理" in line:
+                line = re.sub(r'\s','', line)
                 line = re.split(r'[，：；。]', line)
                 for subline in line:
                     if "受理" in subline:
@@ -66,16 +98,14 @@ def get_filing_date(lines: List[str]) -> str:
                     if filing_date is not None:
                         break
             if filing_date is not None:
-                a = filing_date[0]
                 filing_date = date_format(filing_date[0])
                 break
     return filing_date
 
 # 文末判决日期
-
-
 def get_judgment_date(lines: List[str]) -> str:
     for line in reversed(lines):
+        line = re.sub(r'\s','', line)
         judgment_date = pattern2.search(line)
         if judgment_date is not None:
             judgment_date = date_format(judgment_date[0])
@@ -90,6 +120,7 @@ def get_discharge_date(lines: List[str]) -> str:
     discharge_date = None
     for line in lines:
         if "出院" in line:
+            line = re.sub(r'\s','', line)
             line = re.split(r'[，：；。]', line)
             for subline in line:
                 if "出院" in subline:
@@ -119,6 +150,7 @@ def get_city_class(lines: List[str]) -> Dict:
     citylist = []
     for line in lines:  # 提取人民法院名称
         if "人民法院" in line:
+            line = re.sub(r'\s','', line)
             line = re.split(r'[，：；。\s+]', line)
             for subline in line:
                 if "人民法院" in subline:
@@ -142,14 +174,6 @@ def get_hospital(lines: List[str]) -> List[str]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
-    # 读医院列表
-    all_hos_list=[]
-    all_hos = 'data/formatted/all_hos.txt'
-    file = open(all_hos, 'r')
-    line = file.readlines()
-    line=re.sub(r'\'','',line[0])
-    all_hos_list=re.split(', ',line)
-    file.close()
     treatment = None
     transfer = None
     treatment_hospital = []
@@ -169,11 +193,6 @@ def get_hospital(lines: List[str]) -> List[str]:
                                     transfer = transfer[1:]
                                 if bool([True for h_info in transfer_hospital if transfer in h_info]):
                                     continue
-                                # if transfer in all_hos_list:
-                                #     transfer_hospital.append(transfer)
-                                # elif re.search(r'第|市|县|区|人民', transfer) is not None:
-                                #     transfer_hospital.append(transfer)
-                                # elif re.search(capital_num, transfer) is not None:
                                 transfer_hospital.append(transfer)
                             else:
                                 treatment = (re.split(r'医院|卫生院', seg.word))[0]+re.search(r'医院|卫生院',seg.word)[0]
@@ -218,6 +237,7 @@ def get_diagnosis(lines: List[str]) -> List[str]:
     # 存储所有带有“诊断”的list
     for line in lines:
         if "诊断" in line:
+            line = re.sub(r'\s','', line)
             line = re.split(r'[。 ！]', line)
             for period_subline in line:
                 if "诊断" in period_subline:
@@ -269,8 +289,8 @@ def get_previous(lines: List[str]) -> List[str]:
         line = line.split('。')
         for period_subline in line:
             if "既往" in period_subline:
+                line = re.sub(r'\s','', line)
                 half = re.split("既往", period_subline)
-                # period_subline = re.split(r'[，：；]', period_subline)
                 period_subline = re.findall(
                     '.*?[：；]', period_subline)  # 更精细的时候要加上逗号
                 for comma_index, comma_subline in enumerate(period_subline):
@@ -293,8 +313,6 @@ def get_previous(lines: List[str]) -> List[str]:
 # 优化思路：目前没有时分秒，优化的时候考虑：有时分秒优先时分秒，否则第一个日期
 
 # TODO: 需要测试
-
-
 def get_accident_date(lines: List[str]) -> str:
     p_list = [r'(下列)?事实.?(理由)?', '诉称', '辩称', '事故发生概况',
               '诉讼请求', r'经审理(查明)?(认定)?', '本院认定事实如下']
@@ -341,7 +359,6 @@ def get_accident_date(lines: List[str]) -> str:
 
     return accident_date
 
-
 # 评残日期：disable_assessment_date
 def get_disable_assessment_date(lines: List[str]) -> str:
     disable_assessment = None
@@ -355,6 +372,12 @@ def get_disable_assessment_date(lines: List[str]) -> str:
                     keyObj = re.search(p, subline)
                     if keyObj is not None:
                         disable_assessment = pattern.search(subline)
+                    if disable_assessment is None and "同年" in subline:
+                        tmpyear = get_accident_date(lines)
+                        if tmpyear is not None:
+                            tmpyear = tmpyear.split("-")[0]+"年"
+                            subline2 = re.sub("同年", tmpyear, subline)
+                            disable_assessment = pattern.search(subline2)
                     if disable_assessment is not None:
                         return date_format(disable_assessment[0])
     return disable_assessment
@@ -363,8 +386,6 @@ def get_disable_assessment_date(lines: List[str]) -> str:
 # {injured_name:xx, injured_birth:xx,injured_sex:男女, injured_work:xx,injured_education:xx,injured_resident:xx,injured_marriage:xx}
 # 需要排除被告：已完成--data/provide/scase3
 # 有人姓名会被识别成组织ORG---case5
-
-
 def _deldup(lines: List[str], injured_list: List[dict]) -> List[dict]:
     dupname = {}
     tmp_list = injured_list
@@ -406,7 +427,7 @@ def _get_injured_name(lines: List[str]) -> List[dict]:
     jieba.enable_paddle()
     injured_list = []
     name = r'(原告)'
-    plaintiff_info = case_info.get_plaintiff_info(lines)
+    plaintiff_info = case_info.get_plaintiff_info_v1(lines)
     defendant_info = case_info.get_defendant_info(lines)
     # get_accident_line
     p_list = [r'受伤', r'(当场)?死亡(?!证明|赔偿|殡葬|医学)']
@@ -583,7 +604,7 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
         return injured_list
     works = [r'务农|种地|工地|职员|保安|兼职|无业|无工作']
     name = r'(原告)|([被受]害人)|(死者)'
-    plaintiff_info = case_info.get_plaintiff_info(lines)
+    plaintiff_info = case_info.get_plaintiff_info_v1(lines)
     for work in works:
         for line in lines:
             injured_work = 'null'
@@ -767,8 +788,8 @@ def get_injured_info(lines: List[str]) -> List[dict]:
     return injured_list
 
 
-def get_plaintiff_more_info(lines: List[str]) -> List[dict]:
-    plaintiff_more_info = case_info.get_plaintiff_info(lines)
+def get_plaintiff_info(lines: List[str]) -> List[dict]:
+    plaintiff_more_info = case_info.get_plaintiff_info_v1(lines)
     plaintiff_more_info = _get_plaintiff_birsex(lines, plaintiff_more_info)
     return plaintiff_more_info
 
