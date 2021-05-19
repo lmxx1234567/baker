@@ -379,13 +379,25 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         stop_searching = True
                         break
                 if not stop_searching:
-                    if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
-                        defendant_value = re.sub(r'[男女]', '', defendant_value)
+                    # 测试没问题，但是她们说有问题那就异常捕获一下吧
+                    # if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
+                    #     defendant_value = re.sub(r'[男女]', '', defendant_value)
+                    # defendant_info.append({
+                    #         "defendant": defendant_value,
+                    #         "defendant_agent": "",
+                    #         "law_firm": ""
+                    #     })
+                    # defendant_value = None
+                    try:
+                        if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
+                            defendant_value = re.sub(r'[男女]', '', defendant_value)
+                    except Exception:
+                        pass
                     defendant_info.append({
-                        "defendant": defendant_value,
-                        "defendant_agent": "",
-                        "law_firm": ""
-                    })
+                            "defendant": defendant_value,
+                            "defendant_agent": "",
+                            "law_firm": ""
+                        })
                     defendant_value = None
             if len(defendant_info) == 0:
                 pattern = re.compile(
