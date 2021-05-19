@@ -3,8 +3,9 @@ import csv
 from typing import List, Tuple
 import itertools
 
-from . import schema, similar, SEQ_MODEL_AVALIABLE
-from case_parsers.seq_match import seq_match, seq_match_multiple
+from . import CON_MARK_MODEL_AVALIABLE, schema, similar, SEQ_MODEL_AVALIABLE
+from case_parsers.sequence_match import seq_match_multiple
+from case_parsers.controversy_mark import con_mark_multiple
 
 PLAINTIFF_NAME = []
 Nationality = r'汉族|回族'
@@ -379,20 +380,8 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         stop_searching = True
                         break
                 if not stop_searching:
-                    # 测试没问题，但是她们说有问题那就异常捕获一下吧
-                    # if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
-                    #     defendant_value = re.sub(r'[男女]', '', defendant_value)
-                    # defendant_info.append({
-                    #         "defendant": defendant_value,
-                    #         "defendant_agent": "",
-                    #         "law_firm": ""
-                    #     })
-                    # defendant_value = None
-                    try:
-                        if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
-                            defendant_value = re.sub(r'[男女]', '', defendant_value)
-                    except Exception:
-                        pass
+                    if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
+                        defendant_value = re.sub(r'[男女]', '', defendant_value)
                     defendant_info.append({
                             "defendant": defendant_value,
                             "defendant_agent": "",
@@ -521,82 +510,99 @@ def get_claims(lines: List[str]) -> Tuple[List[dict], int]:
 
 
 def get_controversies(lines: List[str]) -> Tuple[List[dict], int]:
-    basic = '〇一二三四五六七八九'
-    contro_num = -1
-    start_line_num = 0
     controversies: List[dict] = []
-    ch_index = None
-    for line_num, line in enumerate(lines):
-        keyObj = re.search(r'争议(的?焦点|为|是|在于)', line)
-        if keyObj is not None:
-            start_line_num = line_num
-            contro_num = 0
-            matchObj = re.search(r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
-            if matchObj is None:
-                sentences = line.split('。')
-                for sentence in sentences:
-                    if keyObj.group() in sentence:
-                        matchObj = re.search(r'[:：是](.+|\n)', sentence)
-                        if matchObj is not None:
-                            if(matchObj.group(1) == '\n'):
-                                matchObj = re.search(
-                                    r'([〇一二三四五六七八九][、是]|\d[\.、])[^\d]', lines[line_num+1])
-                                if matchObj is None:
+    start_line_num = -1
+
+    if CON_MARK_MODEL_AVALIABLE:
+        lines = [line.replace(' ', '') for line in lines]
+        results = con_mark_multiple(lines)
+        for line_num, result in enumerate(results):
+            if start_line_num == -1:
+                start_line_num = line_num
+            if len(result) > 0:
+                for con in result:
+                    controversies.append({
+                        'con': con,
+                        'line_num': line_num
+                    })
+        return (controversies, start_line_num)
+    else:
+        basic = '〇一二三四五六七八九'
+        contro_num = -1
+
+        ch_index = None
+        for line_num, line in enumerate(lines):
+            keyObj = re.search(r'争议(的?焦点|为|是|在于)', line)
+            if keyObj is not None:
+                start_line_num = line_num
+                contro_num = 0
+                matchObj = re.search(
+                    r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
+                if matchObj is None:
+                    sentences = line.split('。')
+                    for sentence in sentences:
+                        if keyObj.group() in sentence:
+                            matchObj = re.search(r'[:：是](.+|\n)', sentence)
+                            if matchObj is not None:
+                                if(matchObj.group(1) == '\n'):
+                                    matchObj = re.search(
+                                        r'([〇一二三四五六七八九][、是]|\d[\.、])[^\d]', lines[line_num+1])
+                                    if matchObj is None:
+                                        controversies = [{
+                                            'con': lines[line_num+1],
+                                            'line_num':line_num+1
+                                        }]
+                                        return (controversies, start_line_num+1)
+                                else:
                                     controversies = [{
-                                        'con': lines[line_num+1],
-                                        'line_num':line_num+1
+                                        'con': matchObj.group(1),
+                                        'line_num': line_num
                                     }]
-                                    return (controversies, start_line_num+1)
-                            else:
-                                controversies = [{
-                                    'con': matchObj.group(1),
-                                    'line_num': line_num
-                                }]
-                                return (controversies, start_line_num)
-        if contro_num >= 0:
-            if ch_index is None:
-                matchObjs = re.finditer(
-                    r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[。;；？\?]', line)
-                for matchObj in matchObjs:
-                    is_ch = basic.find(matchObj.group()[0])
-                    ch_index = is_ch != -1
-                    num = is_ch if ch_index else int(matchObj.group()[0])
-                    if num > contro_num:
-                        controversies.append({
-                            'con': matchObj.group(2),
-                            'line_num': line_num
-                        })
-                        contro_num = len(controversies)
-                    else:
-                        return (controversies, start_line_num)
-            elif ch_index:
-                matchObjs = re.finditer(
-                    r'[〇一二三四五六七八九][、是](.*?)[。;；？\?]', line)
-                for matchObj in matchObjs:
-                    is_ch = basic.find(matchObj.group()[0])
-                    num = is_ch
-                    if num > contro_num:
-                        controversies.append({
-                            'con': matchObj.group(1),
-                            'line_num': line_num
-                        })
-                        contro_num = len(controversies)
-                    else:
-                        return (controversies, start_line_num)
-            else:
-                matchObjs = re.finditer(
-                    r'\d[\.、]([^\d].*?)[。;；？\?]', line)
-                for matchObj in matchObjs:
-                    num = int(matchObj.group()[0])
-                    if num > contro_num:
-                        controversies.append({
-                            'con': matchObj.group(1),
-                            'line_num': line_num
-                        })
-                        contro_num = len(controversies)
-                    else:
-                        return (controversies, start_line_num)
-    return (controversies, start_line_num)
+                                    return (controversies, start_line_num)
+            if contro_num >= 0:
+                if ch_index is None:
+                    matchObjs = re.finditer(
+                        r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)[。;；？\?]', line)
+                    for matchObj in matchObjs:
+                        is_ch = basic.find(matchObj.group()[0])
+                        ch_index = is_ch != -1
+                        num = is_ch if ch_index else int(matchObj.group()[0])
+                        if num > contro_num:
+                            controversies.append({
+                                'con': matchObj.group(2),
+                                'line_num': line_num
+                            })
+                            contro_num = len(controversies)
+                        else:
+                            return (controversies, start_line_num)
+                elif ch_index:
+                    matchObjs = re.finditer(
+                        r'[〇一二三四五六七八九][、是](.*?)[。;；？\?]', line)
+                    for matchObj in matchObjs:
+                        is_ch = basic.find(matchObj.group()[0])
+                        num = is_ch
+                        if num > contro_num:
+                            controversies.append({
+                                'con': matchObj.group(1),
+                                'line_num': line_num
+                            })
+                            contro_num = len(controversies)
+                        else:
+                            return (controversies, start_line_num)
+                else:
+                    matchObjs = re.finditer(
+                        r'\d[\.、]([^\d].*?)[。;；？\?]', line)
+                    for matchObj in matchObjs:
+                        num = int(matchObj.group()[0])
+                        if num > contro_num:
+                            controversies.append({
+                                'con': matchObj.group(1),
+                                'line_num': line_num
+                            })
+                            contro_num = len(controversies)
+                        else:
+                            return (controversies, start_line_num)
+        return (controversies, start_line_num)
 
 
 def get_case_summary(lines: List[str]) -> List[dict]:
@@ -616,7 +622,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                 "con_input": item[0],
                 "cause_input":item[1]
             }for item in itertools.product([controversy['con'] for controversy in controversies],
-                                           [line for line_num, line in enumerate(lines) if line_num >= start_line_num])]
+                                           [line.replace(' ', '') for line_num, line in enumerate(lines) if line_num >= start_line_num])]
             results = seq_match_multiple(instances)
             if len(results) == 0:
                 raise RuntimeError('seq_match no result')
@@ -646,6 +652,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             return case_summary
     except RuntimeError as e:
         print('get_case_summary error:', e)
+        return case_summary
     contro_num = 0
     approve = disapprove = 0
     last_contro = 0
@@ -663,7 +670,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             matchObj = re.search(
                 '第('+basic[i+1]+'|'+str(i+1)+')个争议焦点', lines[line_num])
             if similar(lines[line_num], controversies[i]['con']) > 0.8 or matchObj is not None:
-                if i > contro_num:
+                if len(controversies) > i > contro_num:
                     case_summary[contro_num]["controversy"] = controversies[contro_num]['con']
                     case_summary[contro_num]['judgement'] = str(None if approve +
                                                                 disapprove == 0 else round(approve/(approve+disapprove)))

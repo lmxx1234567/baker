@@ -1,6 +1,6 @@
 from difflib import SequenceMatcher
 import json
-from case_parsers.seq_match import check_seq_match_model
+from case_parsers import sequence_match,controversy_mark
 
 schema = {}
 
@@ -16,7 +16,8 @@ def similar(string: str, sub: str) -> float:
         size += match.size
     return size/len(sub)
 
-SEQ_MODEL_AVALIABLE = check_seq_match_model()
+SEQ_MODEL_AVALIABLE = sequence_match.check_seq_match_model()
+CON_MARK_MODEL_AVALIABLE = controversy_mark.check_con_mark_model()
 
 from case_parsers.case_info import * 
 from case_parsers.case_info_v2 import *
