@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "baker.py",
             "args": [
-                "defendant_info",
-                "data/raw/case2.txt"
+                "hospital",
+                "data/badcase/notfound/1.txt"
             ],
             "console": "integratedTerminal"
         }
