@@ -3,9 +3,7 @@ import argparse
 import json
 
 import case_parsers
-
-attrs = ['all', 'case_name', 'case_id', 'year', 'cause', 'trial_procedure',
-         'case_type', 'court', 'document_type', 'judge', 'clerk', 'plaintiff_info_v1', 'defendant_info', 'case_summary','filing_date','judgment_date','discharge_date','city_class','hospital','diagnosis','previous','accident_date','disable_assessment_date','injured_info','plaintiff_info','trial_date']
+from const import attrs
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Legal document parser')

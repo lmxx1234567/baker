@@ -28,6 +28,10 @@ class TestCaseParsers(unittest.TestCase):
         claims = case_info.get_claims(test.lines)
         print(claims)
 
+    def test_get_controversies(self):
+        controversies = case_info.get_controversies(test.lines)
+        print(controversies)
+
     def test_get_case_summary(self):
         case_summary = case_info.get_case_summary(test.lines)
         print(case_summary)
