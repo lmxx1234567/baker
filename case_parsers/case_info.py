@@ -176,12 +176,13 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                     plaintiff_info[-1]['plaintiff_agent'] = plaintiff_agent
                     plaintiff_info[-1]['law_firm'] = law_firm
         # Have a name, choose the name first; Otherwise select organization
-        elif '原告' in line and re.search(r'共同委托|法定代理人|反诉原告', line) is None:
+        elif '原告' in line:
             find = True
             line = re.sub(r'[\n\s]', '', line)
-            sublines = re.split(r'[，：:；。、]', line)
+            subline0 = re.split(r'[，、]', line)
             break_it = 0
-            for subline in sublines:
+            for subline in subline0:
+                find_it_der = 0
                 # 原告：张** 的case 直接插入
                 keyObj0 = re.search(r'原告[：:，,]?.{0,3}\*{1,3}', subline)
                 if keyObj0 is not None:
@@ -192,19 +193,19 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                     # if "汉族" in plaintiff_name:
                     if re.search(Nationality, plaintiff_name) is not None:
                         continue
-                    if "公司" in plaintiff_name:
-                        is_company = 1
-                    else:
-                        is_company = 0
                     plaintiff_info.append({
                         "plaintiff": plaintiff_name,
                         "plaintiff_agent": "",
                         "law_firm": "",
-                        "is_company": is_company
+                        "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                     })
-                    break_it = 1
+                    find_it_der = 1
                     break
-                # 否则，jieba分词
+            if find_it_der:
+                break
+            # 否则，jieba分词
+            sublines = re.split(r'[，：:；。、]', line)
+            for subline in sublines:
                 seg_list = list(pseg.cut(subline, use_paddle=True))
                 for index, seg in enumerate(seg_list):
                     if seg.flag == 'PER' or seg.flag == 'nr':
@@ -217,15 +218,11 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                                 plaintiff_name += seg_list[index+1].word[0]
                         except Exception:
                             pass
-                        if "公司" in plaintiff_name:
-                            is_company = 1
-                        else:
-                            is_company = 0
                         plaintiff_info.append({
                             "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
                             "law_firm": "",
-                            "is_company": is_company
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                         })
                         break_it = 1
                         break
@@ -236,7 +233,6 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                     seg_list = list(pseg.cut(subline, use_paddle=True))
                     for index, seg in enumerate(seg_list):
                         if seg.flag == 'ORG':
-                            # if "汉族" in seg.word or "回族" in seg.word:
                             if re.search(Nationality, seg.word) is not None:
                                 continue
                             plaintiff_name = seg.word
@@ -245,15 +241,11 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                                     plaintiff_name += seg_list[index+1].word[0]
                             except Exception:
                                 pass
-                            if "公司" in plaintiff_name:
-                                is_company = 1
-                            else:
-                                is_company = 0
                             plaintiff_info.append({
                                 "plaintiff": plaintiff_name,
                                 "plaintiff_agent": "",
                                 "law_firm": "",
-                                "is_company": is_company
+                                "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                             })
                             break_it = 1
                             break
@@ -275,31 +267,43 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                     if is_splite:
                         subline = re.split(r'[，：:；。、]', sublines_split)
                         plaintiff = subline[0]
-                        if "公司" in plaintiff:
-                            is_company = 1
-                        else:
-                            is_company = 0
                         plaintiff_info.append({
                             "plaintiff": plaintiff,
                             "plaintiff_agent": "",
                             "law_firm": "",
-                            "is_company": is_company
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff) is not None else 0
                         })
+                elif keyObj0 is not None and re.search(r'地址', line) is not None:
+                    sublines = re.split(r'原告[：:]?', line)
+                    try:
+                        sublines_split = sublines[1]
+                        is_splite = True
+                    except Exception:
+                        is_splite = False
+                    if is_splite:
+                        subline = re.split(r'[，：:；。、]', sublines_split)
+                        plaintiff = subline[0]
+                        plaintiff_info.append({
+                            "plaintiff": plaintiff,
+                            "plaintiff_agent": "",
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff) is not None else 0
+                        })
+
+
         elif '法定代理人' in line:
             continue
-        else:
-            if find:
-                break
+        if "原告" in line and "本案" in line:
+            break
     for element in plaintiff_info:
         PLAINTIFF_NAME.append(element["plaintiff"])
     return plaintiff_info
 
 
-def get_defendant_info(lines: List[str]) -> List[dict]:
+def get_defendant_info_v1(lines: List[str]) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
-
     find = False
     defendant_info = []
     not_found = 0
@@ -351,29 +355,31 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                 defendant_info[-1]['defendant_agent'] = defendant_agent
                 defendant_info[-1]['law_firm'] = law_firm
         # elif '被告' in line:
-        elif '被告' in line and re.search(r'共同委托|法定代理人|反诉被告', line) is None:
+        elif '被告' in line:
             find = True
             skip_it = False
             defendant_value = None
             line = re.sub(r'被告[：:，,]?', '', line)
             line = re.sub(r'[\n\s]', '', line)
-            seg_list = list(pseg.cut(line, use_paddle=True))
-            for seg in seg_list:
-                if seg.flag == 'PER':
-                    defendant_value = re.sub(r'[，：；。]', '', seg.word)
-                    skip_it = True
-                    break
-            if not skip_it:
+            lines_for_jieba= re.split(r'[,，]',line)
+            for line_in_jieba in lines_for_jieba:
+                seg_list = list(pseg.cut(line_in_jieba, use_paddle=True))
                 for seg in seg_list:
-                    if not skip_it and seg.flag == 'ORG':
+                    if seg.flag == 'PER':
                         defendant_value = re.sub(r'[，：；。]', '', seg.word)
                         skip_it = True
                         break
-            if not skip_it:
-                for seg in seg_list:
-                    if not skip_it and seg.flag == 'nr':
-                        defendant_value = re.sub(r'[，：；。]', '', seg.word)
-                        break
+                if not skip_it:
+                    for seg in seg_list:
+                        if not skip_it and seg.flag == 'ORG':
+                            defendant_value = re.sub(r'[，：；。]', '', seg.word)
+                            skip_it = True
+                            break
+                if not skip_it:
+                    for seg in seg_list:
+                        if not skip_it and seg.flag == 'nr':
+                            defendant_value = re.sub(r'[，：；。]', '', seg.word)
+                            break
             if defendant_value is not None and defendant_value != "汉族" and defendant_value != "回族":
                 for info in defendant_info:
                     if defendant_value == info['defendant']:
@@ -385,7 +391,8 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                     defendant_info.append({
                             "defendant": defendant_value,
                             "defendant_agent": "",
-                            "law_firm": ""
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
                         })
                     defendant_value = None
             if len(defendant_info) == 0:
@@ -407,7 +414,8 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                         defendant_info.append({
                             "defendant": defendant_value,
                             "defendant_agent": "",
-                            "law_firm": ""
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
                         })
         else:
             if find:
