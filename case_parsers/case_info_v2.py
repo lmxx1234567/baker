@@ -894,3 +894,73 @@ def _get_plaintiff_birsex(lines: List[str], plaintiff_more_info) -> List[dict]:
                     sex_bool = False
                     break
     return plaintiff_more_info
+
+def get_defendant_info(lines: List[str]) -> List[dict]:
+    defendant_more_info = case_info.get_defendant_info_v1(lines)
+    defendant_more_info = _get_defendant_birsex(lines, defendant_more_info)
+    return defendant_more_info
+
+
+def _get_defendant_birsex(lines: List[str], defendant_more_info) -> List[dict]:
+    if defendant_more_info == []:
+        return defendant_more_info
+    birth_date = ''
+    torsubline = 0
+    sex_bool = False
+    birth_bool = False
+    find_defendant = False
+    name = r'(被告)'
+    for defendant_name in defendant_more_info:
+        if "公司" in defendant_name['defendant']:
+            continue
+        defendant_name["defendant_birth"] = ''
+        defendant_name["defendant_sex"] = ''
+        birth_date = None
+        sex = None
+        for line in lines:
+            if line == '\n':
+                continue
+            find_defendant = False
+            # injured["injured_name"]=(injured["injured_name"]).replace('*','某')
+            keyObj = re.search((defendant_name['defendant']).replace(
+                '*', '某'), line.replace('*', '某'))
+            keyObj2 = re.search(name, line)
+            if keyObj is not None or keyObj2 is not None:
+                line = re.split(r'[，：；。]', line)
+                for subline in line:
+                    torsubline += 1
+                    keyObj = re.search((defendant_name['defendant']).replace(
+                        '*', '某'), subline.replace('*', '某'))
+                    if keyObj is not None or find_defendant:
+                        torsubline = 0
+                        find_defendant = True
+                        birth_date = pattern.search(subline)
+                        birthbool2 = re.search(r'(出生|生于|生$)', subline)
+                        sex = re.search(r'[男女]', subline)
+                        if birth_date is not None and birthbool2 is not None:
+                            birth_bool = True
+                            if defendant_name["defendant_birth"] == '':
+                                defendant_name["defendant_birth"] = date_format(
+                                    birth_date[0])
+                        if sex is not None and re.search(r'子女|女儿', subline) is None:
+                            sex_bool = True
+                            defendant_name["defendant_sex"] = sex[0]
+                        if birth_bool and sex_bool:
+                            break
+                        if birthbool2 is not None and birth_date is None and defendant_name["defendant_birth"] == '':
+                            birth_date = pattern_ym.search(subline)
+                            if birth_date is not None:
+                                defendant_name["defendant_birth"] = birth_date[0]
+                                break
+                        if birthbool2 is not None and birth_date is None and defendant_name["defendant_birth"] == '':
+                            birth_date = pattern_year.search(subline)
+                            if birth_date is not None:
+                                defendant_name["defendant_birth"] = birth_date[0]
+                                break
+                    if find_defendant and torsubline > 2:
+                        find_defendant = False
+                if birth_bool and sex_bool:
+                    birth_bool = False
+                    sex_bool = False
+                    break
+    return defendant_more_info

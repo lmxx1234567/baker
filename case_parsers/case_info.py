@@ -196,7 +196,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                         "plaintiff": plaintiff_name,
                         "plaintiff_agent": "",
                         "law_firm": "",
-                        "is_company": 1 if re.search(r'公司|中心', plaintiff_name) is not None else 0
+                        "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                     })
                     find_it_der = 1
                     break
@@ -221,7 +221,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                             "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
                             "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心', plaintiff_name) is not None else 0
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                         })
                         break_it = 1
                         break
@@ -244,7 +244,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                                 "plaintiff": plaintiff_name,
                                 "plaintiff_agent": "",
                                 "law_firm": "",
-                                "is_company": 1 if re.search(r'公司|中心', plaintiff_name) is not None else 0
+                                "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                             })
                             break_it = 1
                             break
@@ -270,7 +270,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                             "plaintiff": plaintiff,
                             "plaintiff_agent": "",
                             "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心', plaintiff) is not None else 0
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff) is not None else 0
                         })
                 elif keyObj0 is not None and re.search(r'地址', line) is not None:
                     sublines = re.split(r'原告[：:]?', line)
@@ -286,7 +286,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                             "plaintiff": plaintiff,
                             "plaintiff_agent": "",
                             "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心', plaintiff) is not None else 0
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff) is not None else 0
                         })
 
 
@@ -299,7 +299,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
     return plaintiff_info
 
 
-def get_defendant_info(lines: List[str]) -> List[dict]:
+def get_defendant_info_v1(lines: List[str]) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
@@ -403,7 +403,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                             "defendant": defendant_value,
                             "defendant_agent": "",
                             "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心', defendant_value) is not None else 0
+                            "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
                         })
                     defendant_value = None
             if len(defendant_info) == 0:
@@ -426,7 +426,7 @@ def get_defendant_info(lines: List[str]) -> List[dict]:
                             "defendant": defendant_value,
                             "defendant_agent": "",
                             "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心', defendant_value) is not None else 0
+                            "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
                         })
         else:
             if find:
