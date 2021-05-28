@@ -101,11 +101,27 @@ def get_document_type(lines: List[str]) -> str:
 
 
 def get_judge(lines: List[str]) -> str:
+    import jieba
+    import jieba.posseg as pseg
+    jieba.enable_paddle()
     for line in reversed(lines):
-        line = re.sub(r'　|\s', '', line)
-        if '审判员' in line:
-            return re.sub(r'(审判员)|[　\s]+', '', line)
+        line = re.sub(r'[　\s+]', '', line)
+        # if '审判员' in line:
+        if re.search(r'审判[员|长]',line) is not None:
+            # line = re.sub(r'[　\s+]', '', line)
+            judge = re.split(r'审判[员|长]', line)[1]
+            seg_list = pseg.cut(judge, use_paddle=True)
+            for seg in seg_list:
+                if seg.flag == 'PER' or seg.flag == 'nr':
+                    judge=re.sub(r'[，,：:；。、"]','', seg.word)
+                    return judge
     return 'Not found'
+
+    # for line in reversed(lines):
+    #     line = re.sub(r'　|\s', '', line)
+    #     if '审判员' in line:
+    #         return re.sub(r'(审判员)|[　\s]+', '', line)
+    # return 'Not found'
 
 
 def get_clerk(lines: List[str]) -> str:
@@ -113,13 +129,28 @@ def get_clerk(lines: List[str]) -> str:
     import jieba.posseg as pseg
     jieba.enable_paddle()
     for line in reversed(lines):
-        line = re.sub(r'　|\s', '', line)
-        if '书记员' in line:
-            seg_list = pseg.cut(line, use_paddle=True)
+        line = re.sub(r'[　\s+]', '', line)
+        # if '书记员' in line:
+        if re.search(r'书记[员|长]',line) is not None:
+            # line = re.sub(r'[　\s+]', '', line)
+            clerk = re.split(r'书记[员|长]', line)[1]
+            seg_list = pseg.cut(clerk, use_paddle=True)
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
-                    return (re.split(r'(书记员)|[　\s]+', line))[-1]
+                    clerk=re.sub(r'[，,：:；。、"]','', seg.word)
+                    return clerk
     return 'Not found'
+    # for line in reversed(lines):
+    #     line = re.sub(r'[　\s+]', '', line)
+    #     if '书记员' in line:
+    #         # line = re.sub(r'[　\s+]', '', line)
+    #         # clerk = re.split(r'(书记员)', line)[-1]
+    #         seg_list = pseg.cut(line, use_paddle=True)
+    #         for seg in seg_list:
+    #             if seg.flag == 'PER' or seg.flag == 'nr':
+    #                 clerk=re.sub(r'[，,：:；。、"]','', seg.word)
+    #                 return clerk
+    # return 'Not found'
 
 
 def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:

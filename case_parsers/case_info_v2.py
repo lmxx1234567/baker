@@ -911,7 +911,10 @@ def _get_defendant_birsex(lines: List[str], defendant_more_info) -> List[dict]:
     find_defendant = False
     name = r'(被告)'
     for defendant_name in defendant_more_info:
-        if "公司" in defendant_name['defendant']:
+        try:
+            if "公司" in defendant_name['defendant']:
+                continue
+        except KeyError:
             continue
         defendant_name["defendant_birth"] = ''
         defendant_name["defendant_sex"] = ''
