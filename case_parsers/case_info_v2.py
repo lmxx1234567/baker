@@ -39,29 +39,31 @@ def date_format(raw_date: str) -> str:
     tmp = format_date.split('-')
     try:
         format_date = datetime.date(int(tmp[0]), int(tmp[1]), int(tmp[2])).strftime(
-        "%{0}-%m-%d".format('Y' if yearlen == 4 else 'y'))
+            "%{0}-%m-%d".format('Y' if yearlen == 4 else 'y'))
     except ValueError as e:
         return raw_date
     return format_date
 
 # trial_date审理日期:‘审理’关键字段落寻找日期
+
+
 def get_trial_date(lines: List[str]) -> str:
     trial_date = None
     for line in lines:
         if line == '\n':
             continue
-        if re.search(r'审理|开庭',line) is not None:
-            line = re.sub(r'\s','', line)
+        if re.search(r'审理|开庭', line) is not None:
+            line = re.sub(r'\s', '', line)
             line = re.split(r'[，：；。]', line)
             for subline in line:
                 if "审理" in subline:
                     trial_date = pattern.search(subline)
                 if trial_date is None and "同年" in subline:
-                        tmpyear = get_accident_date(lines)
-                        if tmpyear is not None:
-                            tmpyear = tmpyear.split("-")[0]+"年"
-                            subline2 = re.sub("同年", tmpyear, subline)
-                            trial_date = pattern.search(subline2)
+                    tmpyear = get_accident_date(lines)
+                    if tmpyear is not None:
+                        tmpyear = tmpyear.split("-")[0]+"年"
+                        subline2 = re.sub("同年", tmpyear, subline)
+                        trial_date = pattern.search(subline2)
                 if trial_date is not None:
                     break
         if trial_date is not None:
@@ -70,23 +72,25 @@ def get_trial_date(lines: List[str]) -> str:
     return trial_date
 
 # filing_date立案日期:‘立案’关键字段落寻找日期
+
+
 def get_filing_date(lines: List[str]) -> str:
     filing_date = None
     for line in lines:
         if line == '\n':
             continue
         if "立案" in line:
-            line = re.sub(r'\s','', line)
+            line = re.sub(r'\s', '', line)
             line = re.split(r'[，：；。]', line)
             for subline in line:
                 if "立案" in subline:
                     filing_date = pattern.search(subline)
                 if filing_date is None and "同年" in subline:
-                        tmpyear = get_accident_date(lines)
-                        if tmpyear is not None:
-                            tmpyear = tmpyear.split("-")[0]+"年"
-                            subline2 = re.sub("同年", tmpyear, subline)
-                            filing_date = pattern.search(subline2)
+                    tmpyear = get_accident_date(lines)
+                    if tmpyear is not None:
+                        tmpyear = tmpyear.split("-")[0]+"年"
+                        subline2 = re.sub("同年", tmpyear, subline)
+                        filing_date = pattern.search(subline2)
                 if filing_date is not None:
                     break
         if filing_date is not None:
@@ -94,7 +98,7 @@ def get_filing_date(lines: List[str]) -> str:
             break
         else:
             if "受理" in line:
-                line = re.sub(r'\s','', line)
+                line = re.sub(r'\s', '', line)
                 line = re.split(r'[，：；。]', line)
                 for subline in line:
                     if "受理" in subline:
@@ -107,9 +111,11 @@ def get_filing_date(lines: List[str]) -> str:
     return filing_date
 
 # 文末判决日期
+
+
 def get_judgment_date(lines: List[str]) -> str:
     for line in reversed(lines):
-        line = re.sub(r'\s','', line)
+        line = re.sub(r'\s', '', line)
         judgment_date = pattern2.search(line)
         if judgment_date is not None:
             judgment_date = date_format(judgment_date[0])
@@ -126,7 +132,7 @@ def get_discharge_date(lines: List[str]) -> str:
         if line == '\n':
             continue
         if "出院" in line:
-            line = re.sub(r'\s','', line)
+            line = re.sub(r'\s', '', line)
             line = re.split(r'[，：；。]', line)
             for subline in line:
                 if "出院" in subline:
@@ -158,7 +164,7 @@ def get_city_class(lines: List[str]) -> Dict:
         if line == '\n':
             continue
         if "人民法院" in line:
-            line = re.sub(r'\s','', line)
+            line = re.sub(r'\s', '', line)
             line = re.split(r'[，：；。\s+]', line)
             for subline in line:
                 if "人民法院" in subline:
@@ -189,30 +195,34 @@ def get_hospital(lines: List[str]) -> List[str]:
     for line in lines:
         if line == '\n':
             continue
-        if re.search(r'医院|卫生院',line) is not None:
+        if re.search(r'医院|卫生院', line) is not None:
             line = re.sub(r'[\n\s]', '', line)
             line = re.split(r'[，：；＋。、.《》]', line)
             for subline in line:
-                if re.search(r'医院|卫生院',subline) is not None:
+                if re.search(r'医院|卫生院', subline) is not None:
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
-                        if (seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG') and (re.search(r'医院|卫生院',seg.word) is not None):
+                        if (seg.flag == 'ns' or seg.flag == 'nt' or seg.flag == 'ORG') and (re.search(r'医院|卫生院', seg.word) is not None):
                             if "转" in subline:
-                                transfer = (re.split(r'医院|卫生院', seg.word))[0]+re.search(r'医院|卫生院',seg.word)[0]
+                                transfer = (re.split(r'医院|卫生院', seg.word))[
+                                    0]+re.search(r'医院|卫生院', seg.word)[0]
                                 if re.search(r'（|经|至|\d{1}\.', transfer[0]) is not None:
                                     transfer = transfer[1:]
                                 if bool([True for h_info in transfer_hospital if transfer in h_info]):
                                     continue
                                 transfer_hospital.append(transfer)
                             else:
-                                treatment = (re.split(r'医院|卫生院', seg.word))[0]+re.search(r'医院|卫生院',seg.word)[0]
+                                treatment = (re.split(r'医院|卫生院', seg.word))[
+                                    0]+re.search(r'医院|卫生院', seg.word)[0]
                                 if re.search(r'（|经|至|\d{1}\.|）', treatment[0:3]) is not None:
                                     # treatments = re.split(r'（|经|至|(\d{1}\.)',treatment)
                                     # if len(treatments)<2:
                                     #     treatment=treatments[1]
                                     # else:
-                                    treatment = re.sub(capital_kuohao,'',treatment)
-                                    treatment = re.sub(r'（|经|至|\d\.|）','',treatment)
+                                    treatment = re.sub(
+                                        capital_kuohao, '', treatment)
+                                    treatment = re.sub(
+                                        r'（|经|至|\d\.|）', '', treatment)
                                 if bool([True for h_info in treatment_hospital if treatment in h_info]) or re.search(r'受伤|送', treatment) is not None:
                                     continue
                                 if re.search(r'（', treatment) is not None and re.search(r'）', treatment) is None:
@@ -249,7 +259,7 @@ def get_diagnosis(lines: List[str]) -> List[str]:
         if line == '\n':
             continue
         if "诊断" in line:
-            line = re.sub(r'\s','', line)
+            line = re.sub(r'\s', '', line)
             line = re.split(r'[。 ！]', line)
             for period_subline in line:
                 if "诊断" in period_subline:
@@ -303,7 +313,7 @@ def get_previous(lines: List[str]) -> List[str]:
         line = line.split('。')
         for period_subline in line:
             if "既往" in period_subline:
-                line = re.sub(r'\s','', line)
+                line = re.sub(r'\s', '', line)
                 half = re.split("既往", period_subline)
                 period_subline = re.findall(
                     '.*?[：；]', period_subline)  # 更精细的时候要加上逗号
@@ -327,6 +337,8 @@ def get_previous(lines: List[str]) -> List[str]:
 # 优化思路：目前没有时分秒，优化的时候考虑：有时分秒优先时分秒，否则第一个日期
 
 # TODO: 需要测试
+
+
 def get_accident_date(lines: List[str]) -> str:
     p_list = [r'(下列)?事实.?(理由)?', '诉称', '辩称', '事故发生概况',
               '诉讼请求', r'经审理(查明)?(认定)?', '本院认定事实如下']
@@ -376,6 +388,8 @@ def get_accident_date(lines: List[str]) -> str:
     return accident_date
 
 # 评残日期：disable_assessment_date
+
+
 def get_disable_assessment_date(lines: List[str]) -> str:
     disable_assessment = None
     p_list = [r'级.?残', r'伤残.*级', r'鉴定(所|中心).*(出具|[作做]出)', r'鉴定(所|中心)']
@@ -404,6 +418,8 @@ def get_disable_assessment_date(lines: List[str]) -> str:
 # {injured_name:xx, injured_birth:xx,injured_sex:男女, injured_work:xx,injured_education:xx,injured_resident:xx,injured_marriage:xx}
 # 需要排除被告：已完成--data/provide/scase3
 # 有人姓名会被识别成组织ORG---case5
+
+
 def _deldup(lines: List[str], injured_list: List[dict]) -> List[dict]:
     dupname = {}
     tmp_list = injured_list
@@ -439,14 +455,14 @@ def _deldup(lines: List[str], injured_list: List[dict]) -> List[dict]:
     return tmp_list
 
 
-def _get_injured_name(lines: List[str]) -> List[dict]:
+def _get_injured_name(lines: List[str], plaintiff_info) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
     injured_list = []
     name = r'(原告)'
-    plaintiff_info = case_info.get_plaintiff_info_v1(lines)
-    defendant_info = case_info.get_defendant_info(lines)
+    # plaintiff_info = get_plaintiff_info(lines)
+    defendant_info = get_defendant_info(lines)
     # get_accident_line
     p_list = [r'受伤', r'(当场)?死亡(?!证明|赔偿|殡葬|医学)']
     # [r'(住(?!院))|生活(?!费|来源)']
@@ -508,6 +524,18 @@ def _get_injured_name(lines: List[str]) -> List[dict]:
                                     injured_list.append(injured_info)
     if len(injured_list) > 1:
         _deldup(lines, injured_list)
+    # 如果伤者为空，就把原告放进去
+    if len(injured_list) == 0:
+        for plaint in plaintiff_info:
+            injuerd = plaint["plaintiff"]
+            if bool([True for injured_info in injured_list if injuerd in injured_info.values()]):
+                continue
+            if plaint["is_company"]:
+                continue
+            injured_info = {'injured_name': '', 'injured_birth': 'null', 'injured_sex': 'null',
+                            'injured_work': 'null', 'injured_education': 'null', 'injured_resident': 'null', 'injured_marriage': []}
+            injured_info['injured_name'] = injuerd
+            injured_list.append(injured_info)
     return injured_list
 
 
@@ -619,7 +647,7 @@ def _get_injured_marri(lines: List[str], injured_list) -> List[dict]:
     return injured_list
 
 
-def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
+def _get_injured_work(lines: List[str], injured_list, plaintiff_info) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
@@ -627,7 +655,7 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
         return injured_list
     works = [r'务农|种地|工地|职员|保安|兼职|无业|无工作']
     name = r'(原告)|([被受]害人)|(死者)'
-    plaintiff_info = case_info.get_plaintiff_info_v1(lines)
+    # plaintiff_info = get_plaintiff_info(lines)
     for work in works:
         for line in lines:
             if line == '\n':
@@ -635,7 +663,7 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
             injured_work = 'null'
             sublines = re.split(r'[。；，：]', line)
             for index, subline in enumerate(sublines):
-                if re.search(r'第.+条|补助标准',subline) is not None:
+                if re.search(r'第.+条|补助标准', subline) is not None:
                     continue
                 here_u_a = False
                 keyObj_e = re.search(work, subline)
@@ -651,13 +679,13 @@ def _get_injured_work(lines: List[str], injured_list) -> List[dict]:
                     if here_u_a or keyObj_e is not None:
                         injured_work = subline
                         for injured_info in injured_list:
-                            in_for=False
-                            for i in range(0, min(7,index)):
+                            in_for = False
+                            for i in range(0, min(7, index)):
                                 keyObj = re.search((injured_info["injured_name"]).replace(
                                     '*', '某'), sublines[index-i].replace('*', '某'))
                                 keyObj2 = re.search(name, sublines[index-i])
                                 if keyObj is not None or keyObj2 is not None:
-                                    in_for=True
+                                    in_for = True
                                     break
                             if 1-in_for:
                                 keyObj = re.search((injured_info["injured_name"]).replace(
@@ -814,11 +842,12 @@ def _get_injured_resdt(lines: List[str], injured_list) -> List[dict]:
 
 
 def get_injured_info(lines: List[str]) -> List[dict]:
-    injured_list = _get_injured_name(lines)
+    plaintiff_info = get_plaintiff_info(lines)
+    injured_list = _get_injured_name(lines, plaintiff_info)
     injured_list = _get_injured_birth(lines, injured_list)
     injured_list = _get_injured_sex(lines, injured_list)
     injured_list = _get_injured_marri(lines, injured_list)
-    injured_list = _get_injured_work(lines, injured_list)
+    injured_list = _get_injured_work(lines, injured_list, plaintiff_info)
     injured_list = _get_injured_edu(lines, injured_list)
     injured_list = _get_injured_resdt(lines, injured_list)
 
@@ -827,7 +856,19 @@ def get_injured_info(lines: List[str]) -> List[dict]:
 
 def get_plaintiff_info(lines: List[str]) -> List[dict]:
     plaintiff_more_info = case_info.get_plaintiff_info_v1(lines)
-    plaintiff_more_info = _get_plaintiff_birsex(lines, plaintiff_more_info)
+    if len(plaintiff_more_info) != 0:
+        plaintiff_more_info = _get_plaintiff_birsex(lines, plaintiff_more_info)
+    else:
+        for index, line in enumerate(lines):
+            line = re.sub(r'[　\s+]', '', line)
+            if re.search(r'审判[员|长]', line) is not None:
+                if index <= 8:
+                    newlines = []
+                    for newline in lines:
+                        newline = re.split(r'。', newline)
+                        newlines += newline
+                    plaintiff_more_info = get_plaintiff_info(newlines)
+                return plaintiff_more_info
     return plaintiff_more_info
 
 
@@ -895,9 +936,22 @@ def _get_plaintiff_birsex(lines: List[str], plaintiff_more_info) -> List[dict]:
                     break
     return plaintiff_more_info
 
+
 def get_defendant_info(lines: List[str]) -> List[dict]:
     defendant_more_info = case_info.get_defendant_info_v1(lines)
-    defendant_more_info = _get_defendant_birsex(lines, defendant_more_info)
+    if len(defendant_more_info) != 0:
+        defendant_more_info = _get_defendant_birsex(lines, defendant_more_info)
+    if len(defendant_more_info) <= 1:
+        for index, line in enumerate(lines):
+            line = re.sub(r'[　\s+]', '', line)
+            if re.search(r'审判[员|长]', line) is not None:
+                if index <= 8:
+                    newlines = []
+                    for newline in lines:
+                        newline = re.split(r'。', newline)
+                        newlines += newline
+                    defendant_more_info = get_defendant_info(newlines)
+                return defendant_more_info
     return defendant_more_info
 
 

@@ -3,6 +3,8 @@ import csv
 from typing import List, Tuple
 import itertools
 
+from paddle.fluid.layers.control_flow import IfElse
+
 from . import schema, similar, SEQ_MODEL_AVALIABLE
 from case_parsers.seq_match import seq_match, seq_match_multiple
 
@@ -161,6 +163,8 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
     for line in lines:
         if line == '\n':
             continue
+        if "原告" in line and re.search(r'审理终结|纠纷',line) is not None:
+            break
         # if '委托诉讼代理人' in line or '委托代理人' in line:
         if re.search(r'诉讼代理人|委托诉讼代理人|委托代理人', line) is not None:
             line = re.sub(r'(委托诉讼代理人|诉讼代理人|委托代理人)[：:，,]', '', line)
@@ -209,6 +213,30 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
         elif '原告' in line:
             find = True
             line = re.sub(r'[\n\s]', '', line)
+            if len(line)<10:
+                plaintiff_name = re.sub(r'[原告：:，,。男女]', '', line)
+                if 1-bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
+                    plaintiff_info.append({
+                        "plaintiff": plaintiff_name,
+                        "plaintiff_agent": "",
+                        "law_firm": "",
+                        "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                    })
+                continue
+            if len(re.split(r'。',line))<=2 and re.search(r'住|地址',line) is not None:
+                tmp_names = re.split(r'[原告：:，,。男女]', line)
+                for tmp_name in tmp_names:
+                    if tmp_name != '':
+                        plaintiff_name = tmp_name
+                        break
+                if 1-bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
+                    plaintiff_info.append({
+                        "plaintiff": plaintiff_name,
+                        "plaintiff_agent": "",
+                        "law_firm": "",
+                        "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                    })
+                continue
             subline0 = re.split(r'[，、]', line)
             break_it = 0
             for subline in subline0:
@@ -220,8 +248,9 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                     if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                         break_it = 1
                         break
-                    # if "汉族" in plaintiff_name:
                     if re.search(Nationality, plaintiff_name) is not None:
+                        continue
+                    if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                         continue
                     plaintiff_info.append({
                         "plaintiff": plaintiff_name,
@@ -248,6 +277,8 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                                 plaintiff_name += seg_list[index+1].word[0]
                         except Exception:
                             pass
+                        if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
+                            continue
                         plaintiff_info.append({
                             "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
@@ -271,6 +302,8 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                                     plaintiff_name += seg_list[index+1].word[0]
                             except Exception:
                                 pass
+                            if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
+                                continue
                             plaintiff_info.append({
                                 "plaintiff": plaintiff_name,
                                 "plaintiff_agent": "",
@@ -296,12 +329,14 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                         is_splite = False
                     if is_splite:
                         subline = re.split(r'[，：:；。、]', sublines_split)
-                        plaintiff = subline[0]
+                        plaintiff_name = subline[0]
+                        if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
+                            continue
                         plaintiff_info.append({
-                            "plaintiff": plaintiff,
+                            "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
                             "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff) is not None else 0
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                         })
                 elif keyObj0 is not None and re.search(r'地址', line) is not None:
                     sublines = re.split(r'原告[：:]?', line)
@@ -312,12 +347,14 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                         is_splite = False
                     if is_splite:
                         subline = re.split(r'[，：:；。、]', sublines_split)
-                        plaintiff = subline[0]
+                        plaintiff_name = subline[0]
+                        if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
+                            continue
                         plaintiff_info.append({
-                            "plaintiff": plaintiff,
+                            "plaintiff": plaintiff_name,
                             "plaintiff_agent": "",
                             "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff) is not None else 0
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                         })
 
 
@@ -342,7 +379,7 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
     for line in lines:
         if line == '\n':
             continue
-        if find and "原告" in line and "本案" in line:
+        if find and "原告" in line and re.search(r'审理终结|纠纷|本案',line) is not None:
             break
         if stop_searching:
             break
@@ -387,11 +424,35 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
         # elif '被告' in line:
         elif '被告' in line:
             find = True
+            if len(line)<10:
+                defendant_value = re.sub(r'[被告：:，,。男女]', '', line)
+                if 1-bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
+                    defendant_info.append({
+                        "defendant": defendant_value,
+                        "defendant_agent": "",
+                        "law_firm": "",
+                        "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
+                    })
+                continue
+            if len(re.split(r'。',line))<=2 and re.search(r'住|地址',line) is not None:
+                tmp_names = re.split(r'[被告：:，,。男女]', line)
+                for tmp_name in tmp_names:
+                    if tmp_name != '':
+                        defendant_value = tmp_name
+                        break
+                if 1-bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
+                    defendant_info.append({
+                        "defendant": defendant_value,
+                        "defendant_agent": "",
+                        "law_firm": "",
+                        "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
+                    })
+                continue
             skip_it = False
             defendant_value = None
-            line = re.sub(r'被告[：:，,]?', '', line)
-            line = re.sub(r'[\n\s]', '', line)
-            lines_for_jieba= re.split(r'[,，]',line)
+            line1 = re.sub(r'被告[：:，,]?', '', line)
+            line1 = re.sub(r'[\n\s]', '', line1)
+            lines_for_jieba= re.split(r'[,，]',line1)
             for line_in_jieba in lines_for_jieba:
                 seg_list = list(pseg.cut(line_in_jieba, use_paddle=True))
                 for seg in seg_list:
@@ -416,20 +477,13 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
                         stop_searching = True
                         break
                 if not stop_searching:
-                    # 测试没问题，但是她们说有问题那就异常捕获一下吧
-                    # if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
-                    #     defendant_value = re.sub(r'[男女]', '', defendant_value)
-                    # defendant_info.append({
-                    #         "defendant": defendant_value,
-                    #         "defendant_agent": "",
-                    #         "law_firm": ""
-                    #     })
-                    # defendant_value = None
                     try:
                         if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
                             defendant_value = re.sub(r'[男女]', '', defendant_value)
                     except Exception:
                         pass
+                    if bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
+                        continue
                     defendant_info.append({
                             "defendant": defendant_value,
                             "defendant_agent": "",
@@ -453,6 +507,8 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
                     if is_splite:
                         subline = re.split(r'[，：:；。、]', sublines_split)
                         defendant_value = subline[0]
+                        if bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
+                            continue
                         defendant_info.append({
                             "defendant": defendant_value,
                             "defendant_agent": "",
