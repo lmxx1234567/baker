@@ -1,15 +1,12 @@
-import re
 import csv
+import re
 from typing import List, Tuple
-import itertools
-
-from paddle.fluid.layers.control_flow import IfElse
-
-from . import schema, similar, SEQ_MODEL_AVALIABLE
-from case_parsers.seq_match import seq_match, seq_match_multiple
-
-PLAINTIFF_NAME = []
-Nationality = r'汉族|回族'
+from . import (CON_MARK_CLAIM_MODEL_AVALIABLE,
+               CON_MARK_NOT_CLAIM_MODEL_AVALIABLE, SEQ_MODEL_AVALIABLE, schema,
+               similar)
+from .controversy_mark import con_mark_multiple
+from .sequence_match import seq_match_multiple
+from multiprocessing.pool import ThreadPool
 
 
 def get_case_name(lines: List[str]) -> str:
@@ -108,13 +105,13 @@ def get_judge(lines: List[str]) -> str:
     for line in reversed(lines):
         line = re.sub(r'[　\s+]', '', line)
         # if '审判员' in line:
-        if re.search(r'审判[员|长]',line) is not None:
+        if re.search(r'审判[员|长]', line) is not None:
             # line = re.sub(r'[　\s+]', '', line)
             judge = re.split(r'审判[员|长]', line)[1]
             seg_list = pseg.cut(judge, use_paddle=True)
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
-                    judge=re.sub(r'[，,：:；。、"]','', seg.word)
+                    judge = re.sub(r'[，,：:；。、"]', '', seg.word)
                     return judge
     return 'Not found'
 
@@ -132,13 +129,13 @@ def get_clerk(lines: List[str]) -> str:
     for line in reversed(lines):
         line = re.sub(r'[　\s+]', '', line)
         # if '书记员' in line:
-        if re.search(r'书记[员|长]',line) is not None:
+        if re.search(r'书记[员|长]', line) is not None:
             # line = re.sub(r'[　\s+]', '', line)
             clerk = re.split(r'书记[员|长]', line)[1]
             seg_list = pseg.cut(clerk, use_paddle=True)
             for seg in seg_list:
                 if seg.flag == 'PER' or seg.flag == 'nr':
-                    clerk=re.sub(r'[，,：:；。、"]','', seg.word)
+                    clerk = re.sub(r'[，,：:；。、"]', '', seg.word)
                     return clerk
     return 'Not found'
     # for line in reversed(lines):
@@ -160,12 +157,14 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
     jieba.enable_paddle()
     find = False
     plaintiff_info = []
+    Nationality = r'汉族|回族'
+    pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …（）：]'
     for line in lines:
         if line == '\n':
             continue
-        if "原告" in line and re.search(r'审理终结|纠纷',line) is not None:
+        if "原告" in line and re.search(r'审理终结|纠纷', line) is not None:
             break
-        # if '委托诉讼代理人' in line or '委托代理人' in line:
+        line=re.sub(r'[？?!！]','',line)
         if re.search(r'诉讼代理人|委托诉讼代理人|委托代理人', line) is not None:
             line = re.sub(r'(委托诉讼代理人|诉讼代理人|委托代理人)[：:，,]', '', line)
             line = re.sub(r'[\n\s]', '', line)
@@ -213,29 +212,33 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
         elif '原告' in line:
             find = True
             line = re.sub(r'[\n\s]', '', line)
-            if len(line)<10:
+            if len(line) < 10:
                 plaintiff_name = re.sub(r'[原告：:，,。男女]', '', line)
                 if 1-bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
-                    plaintiff_info.append({
-                        "plaintiff": plaintiff_name,
-                        "plaintiff_agent": "",
-                        "law_firm": "",
-                        "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
-                    })
+                    plaintiff_name = re.sub(pattern,'',plaintiff_name)
+                    if len(plaintiff_name)>0:
+                        plaintiff_info.append({
+                            "plaintiff": plaintiff_name,
+                            "plaintiff_agent": "",
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                        })
                 continue
-            if len(re.split(r'。',line))<=2 and re.search(r'住|地址',line) is not None:
+            if len(re.split(r'。', line)) <= 2 and re.search(r'住|地址', line) is not None:
                 tmp_names = re.split(r'[原告：:，,。男女]', line)
                 for tmp_name in tmp_names:
                     if tmp_name != '':
                         plaintiff_name = tmp_name
                         break
                 if 1-bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
-                    plaintiff_info.append({
-                        "plaintiff": plaintiff_name,
-                        "plaintiff_agent": "",
-                        "law_firm": "",
-                        "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
-                    })
+                    plaintiff_name = re.sub(pattern,'',plaintiff_name)
+                    if len(plaintiff_name)>0:
+                        plaintiff_info.append({
+                            "plaintiff": plaintiff_name,
+                            "plaintiff_agent": "",
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                        })
                 continue
             subline0 = re.split(r'[，、]', line)
             break_it = 0
@@ -252,12 +255,14 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                         continue
                     if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                         continue
-                    plaintiff_info.append({
-                        "plaintiff": plaintiff_name,
-                        "plaintiff_agent": "",
-                        "law_firm": "",
-                        "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
-                    })
+                    plaintiff_name = re.sub(pattern,'',plaintiff_name)
+                    if len(plaintiff_name)>0:
+                        plaintiff_info.append({
+                            "plaintiff": plaintiff_name,
+                            "plaintiff_agent": "",
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                        })
                     find_it_der = 1
                     break
             if find_it_der:
@@ -279,12 +284,14 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                             pass
                         if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                             continue
-                        plaintiff_info.append({
-                            "plaintiff": plaintiff_name,
-                            "plaintiff_agent": "",
-                            "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
-                        })
+                        plaintiff_name = re.sub(pattern,'',plaintiff_name)
+                        if len(plaintiff_name)>0:
+                            plaintiff_info.append({
+                                "plaintiff": plaintiff_name,
+                                "plaintiff_agent": "",
+                                "law_firm": "",
+                                "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                            })
                         break_it = 1
                         break
                 if break_it:
@@ -304,22 +311,24 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                                 pass
                             if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                                 continue
-                            plaintiff_info.append({
-                                "plaintiff": plaintiff_name,
-                                "plaintiff_agent": "",
-                                "law_firm": "",
-                                "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
-                            })
+                            plaintiff_name = re.sub(pattern,'',plaintiff_name)
+                            if len(plaintiff_name)>0:
+                                plaintiff_info.append({
+                                    "plaintiff": plaintiff_name,
+                                    "plaintiff_agent": "",
+                                    "law_firm": "",
+                                    "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                                })
                             break_it = 1
                             break
                     if break_it:
                         break
             if 1-break_it:
-                pattern = re.compile(
+                pattern_time = re.compile(
                     '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
                 keyObj0 = re.search(r'原告[：:]?', line)
                 keyObj1 = re.search(r'[男女]', line)
-                keyObj2 = pattern.search(line)
+                keyObj2 = pattern_time.search(line)
                 if keyObj0 is not None and keyObj1 is not None and keyObj2 is not None:
                     sublines = re.split(r'原告[：:]?', line)
                     try:
@@ -332,12 +341,14 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                         plaintiff_name = subline[0]
                         if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                             continue
-                        plaintiff_info.append({
-                            "plaintiff": plaintiff_name,
-                            "plaintiff_agent": "",
-                            "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
-                        })
+                        plaintiff_name = re.sub(pattern,'',plaintiff_name)
+                        if len(plaintiff_name)>0:
+                            plaintiff_info.append({
+                                "plaintiff": plaintiff_name,
+                                "plaintiff_agent": "",
+                                "law_firm": "",
+                                "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                            })
                 elif keyObj0 is not None and re.search(r'地址', line) is not None:
                     sublines = re.split(r'原告[：:]?', line)
                     try:
@@ -350,20 +361,19 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                         plaintiff_name = subline[0]
                         if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                             continue
-                        plaintiff_info.append({
-                            "plaintiff": plaintiff_name,
-                            "plaintiff_agent": "",
-                            "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
-                        })
-
+                        plaintiff_name = re.sub(pattern,'',plaintiff_name)
+                        if len(plaintiff_name)>0:
+                            plaintiff_info.append({
+                                "plaintiff": plaintiff_name,
+                                "plaintiff_agent": "",
+                                "law_firm": "",
+                                "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
+                            })
 
         elif '法定代理人' in line:
             continue
         if "原告" in line and "本案" in line:
             break
-    for element in plaintiff_info:
-        PLAINTIFF_NAME.append(element["plaintiff"])
     return plaintiff_info
 
 
@@ -371,6 +381,7 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
     import jieba
     import jieba.posseg as pseg
     jieba.enable_paddle()
+    PLAINTIFF_NAME = []
     find = False
     defendant_info = []
     not_found = 0
@@ -379,10 +390,11 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
     for line in lines:
         if line == '\n':
             continue
-        if find and "原告" in line and re.search(r'审理终结|纠纷|本案',line) is not None:
+        if find and "原告" in line and re.search(r'审理终结|纠纷|本案', line) is not None:
             break
         if stop_searching:
             break
+        line=re.sub(r'[？?!！]','',line)
         if similar(line, '委托诉讼代理人') > 0.5:
             line = re.sub(r'委托诉讼代理人[：:，,]?', '', line)
             line = re.sub(r'[\n\s]', '', line)
@@ -424,35 +436,39 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
         # elif '被告' in line:
         elif '被告' in line:
             find = True
-            if len(line)<10:
+            if len(line) < 10:
                 defendant_value = re.sub(r'[被告：:，,。男女]', '', line)
                 if 1-bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
-                    defendant_info.append({
-                        "defendant": defendant_value,
-                        "defendant_agent": "",
-                        "law_firm": "",
-                        "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
-                    })
+                    defendant_value = re.sub(pattern,'',defendant_value)
+                    if len(defendant_value) > 0:
+                        defendant_info.append({
+                            "defendant": defendant_value,
+                            "defendant_agent": "",
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
+                        })
                 continue
-            if len(re.split(r'。',line))<=2 and re.search(r'住|地址',line) is not None:
+            if len(re.split(r'。', line)) <= 2 and re.search(r'住|地址', line) is not None:
                 tmp_names = re.split(r'[被告：:，,。男女]', line)
                 for tmp_name in tmp_names:
                     if tmp_name != '':
                         defendant_value = tmp_name
                         break
                 if 1-bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
-                    defendant_info.append({
-                        "defendant": defendant_value,
-                        "defendant_agent": "",
-                        "law_firm": "",
-                        "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
-                    })
+                    defendant_value = re.sub(pattern,'',defendant_value)
+                    if len(defendant_value) > 0:
+                        defendant_info.append({
+                            "defendant": defendant_value,
+                            "defendant_agent": "",
+                            "law_firm": "",
+                            "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
+                        })
                 continue
             skip_it = False
             defendant_value = None
             line1 = re.sub(r'被告[：:，,]?', '', line)
             line1 = re.sub(r'[\n\s]', '', line1)
-            lines_for_jieba= re.split(r'[,，]',line1)
+            lines_for_jieba = re.split(r'[,，]', line1)
             for line_in_jieba in lines_for_jieba:
                 seg_list = list(pseg.cut(line_in_jieba, use_paddle=True))
                 for seg in seg_list:
@@ -479,12 +495,15 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
                 if not stop_searching:
                     try:
                         if re.search(r'[男女]', defendant_value[-1]) is not None and len(defendant_value) > 3:
-                            defendant_value = re.sub(r'[男女]', '', defendant_value)
+                            defendant_value = re.sub(
+                                r'[男女]', '', defendant_value)
                     except Exception:
                         pass
                     if bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
                         continue
-                    defendant_info.append({
+                    defendant_value = re.sub(pattern,'',defendant_value)
+                    if len(defendant_value) > 0:
+                        defendant_info.append({
                             "defendant": defendant_value,
                             "defendant_agent": "",
                             "law_firm": "",
@@ -492,11 +511,11 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
                         })
                     defendant_value = None
             if len(defendant_info) == 0:
-                pattern = re.compile(
+                pattern_time = re.compile(
                     '\d{2,4}[\.\-/年]{1}\d{1,2}[\.\-/月]{1}\d{1,2}[日号]{0,1}|[一二].{1,3}年.{1,2}月.{1,3}[日号]{1}')
                 keyObj0 = re.search(r'被告[：:]?', line)
                 keyObj1 = re.search(r'[男女]', line)
-                keyObj2 = pattern.search(line)
+                keyObj2 = pattern_time.search(line)
                 if keyObj0 is not None and keyObj1 is not None and keyObj2 is not None:
                     sublines = re.split(r'被告[：:]?', line)
                     try:
@@ -509,23 +528,30 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
                         defendant_value = subline[0]
                         if bool([True for d_info in defendant_info if defendant_value in d_info.values()]):
                             continue
-                        defendant_info.append({
-                            "defendant": defendant_value,
-                            "defendant_agent": "",
-                            "law_firm": "",
-                            "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
-                        })
+                        defendant_value = re.sub(pattern,'',defendant_value)
+                        if len(defendant_value) > 0:
+                            defendant_info.append({
+                                "defendant": defendant_value,
+                                "defendant_agent": "",
+                                "law_firm": "",
+                                "is_company": 1 if re.search(r'公司|中心|机构', defendant_value) is not None else 0
+                            })
         else:
             if find:
                 if not_found > 1:
                     break
                 else:
                     not_found += 1
-    get_plaintiff_info_v1(lines)
+    tmp_plaintiff_info_name = get_plaintiff_info_v1(lines)
+    for element in tmp_plaintiff_info_name:
+        PLAINTIFF_NAME.append(element["plaintiff"])
+    temp_defendant = []
     for index, element in enumerate(defendant_info):
+        hasPlaintiff = 0
         for plaintiff_tmp in PLAINTIFF_NAME:
             if element["defendant"] in plaintiff_tmp or plaintiff_tmp in element["defendant"]:
-                defendant_info.pop(index)
+                #defendant_info.pop(index)
+                hasPlaintiff = 1
                 break
             if element["defendant_agent"] in plaintiff_tmp or plaintiff_tmp in element["defendant_agent"]:
                 element["defendant_agent"] = ''
@@ -538,7 +564,9 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
             del element["defendant"]
             del element["defendant_agent"]
             del element["law_firm"]
-    return defendant_info
+        if not hasPlaintiff:
+            temp_defendant.append(element)
+    return temp_defendant
 
 
 def get_claims(lines: List[str]) -> Tuple[List[dict], int]:
@@ -616,17 +644,20 @@ def get_claims(lines: List[str]) -> Tuple[List[dict], int]:
 
 
 def get_controversies(lines: List[str]) -> Tuple[List[dict], int]:
+    controversies: List[dict] = []
+    start_line_num = -1
+
     basic = '〇一二三四五六七八九'
     contro_num = -1
-    start_line_num = 0
-    controversies: List[dict] = []
+
     ch_index = None
     for line_num, line in enumerate(lines):
         keyObj = re.search(r'争议(的?焦点|为|是|在于)', line)
         if keyObj is not None:
             start_line_num = line_num
             contro_num = 0
-            matchObj = re.search(r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
+            matchObj = re.search(
+                r'([〇一二三四五六七八九][、是]|\d[\.、])([^\d].*?)', line)
             if matchObj is None:
                 sentences = line.split('。')
                 for sentence in sentences:
@@ -691,39 +722,95 @@ def get_controversies(lines: List[str]) -> Tuple[List[dict], int]:
                         contro_num = len(controversies)
                     else:
                         return (controversies, start_line_num)
+        return (controversies, start_line_num)
+
+
+def get_controversies_with_type(lines: List[str], type: str = '') -> Tuple[List[dict], int]:
+    controversies: List[dict] = []
+    start_line_num = -1
+
+    lines = [line.replace(' ', '') for line in lines]
+    results = con_mark_multiple(lines, type)
+    for line_num, result in enumerate(results):
+        if start_line_num == -1:
+            start_line_num = line_num
+        if len(result) > 0:
+            for con in result:
+                controversies.append({
+                    'con': con,
+                    'line_num': line_num,
+                })
     return (controversies, start_line_num)
 
 
+def get_controversies_with_type_v2(lines: List[str], type: str = '') -> Tuple[List[dict], int]:
+    controversies: List[dict] = []
+    start_line_num = -1
+
+    lines = [line.replace(' ', '') for line in lines]
+    results = con_mark_multiple(lines, type)
+    for line_num, result in enumerate(results):
+        if start_line_num == -1:
+            start_line_num = line_num
+        if len(result) > 0:
+            for con in result:
+                controversies.append(con)
+    return controversies
+
+
+def _seq_match(summary, lines):
+    instances = [{
+        "con_input": summary['controversy'],
+        "cause_input": line.strip()
+    } for line in lines]
+    results = seq_match_multiple(instances)
+    if len(results) == 0:
+        raise RuntimeError('seq_match no result')
+    return results
+
+
 def get_case_summary(lines: List[str]) -> List[dict]:
-    (controversies, start_line_num) = get_controversies(lines)
-    if len(controversies) == 0:
-        (controversies, start_line_num) = get_claims(lines)
+    if CON_MARK_CLAIM_MODEL_AVALIABLE:
+        (controversies, start_line_num) = get_controversies_with_type(lines, 'claim')
+    else:
+        (controversies, start_line_num) = get_controversies(lines)
+        if len(controversies) == 0:
+            (controversies, start_line_num) = get_claims(lines)
+        if len(controversies) == 0:
+            return []
 
     case_summary = [{
         "controversy": controversy['con'],
+        "is_claim": True,
         "judgement": "",
         "cause": [],
         "basis": []
     } for controversy in controversies]
+
+    if CON_MARK_NOT_CLAIM_MODEL_AVALIABLE:
+        (controversies, _) = get_controversies_with_type(
+            lines, 'not_claim')
+        start_line_num = max(start_line_num, _)
+        case_summary += [{
+            "controversy": controversy['con'],
+            "is_claim": False,
+            "judgement": -1,
+            "cause": [],
+            "basis": []
+        } for controversy in controversies]
+
     try:
         if SEQ_MODEL_AVALIABLE:
-            instances = [{
-                "con_input": item[0],
-                "cause_input":item[1]
-            }for item in itertools.product([controversy['con'] for controversy in controversies],
-                                           [line for line_num, line in enumerate(lines) if line_num >= start_line_num])]
-            results = seq_match_multiple(instances)
-            if len(results) == 0:
-                raise RuntimeError('seq_match no result')
-            line_scores = [max([{
-                'contro_num': contro_num,
-                'score': results[contro_num*(len(lines)-start_line_num)+line_num-start_line_num]
-            } for contro_num in range(len(controversies))], key=lambda item: item['score'])
-                for line_num in range(len(lines)) if line_num >= start_line_num]
-            for line_num, line_score in enumerate(line_scores):
-                if line_score['score'] > 0.5:
-                    case_summary[line_score['contro_num']]['cause'].append(
-                        lines[line_num+start_line_num].strip())
+            pool = ThreadPool(32)
+            results_list = pool.starmap(
+                _seq_match, [(summary, lines) for summary in case_summary])
+            for contro_num, summary in enumerate(case_summary):
+                results = results_list[contro_num]
+                for line_num, result in enumerate(results):
+                    if result > 0.5:
+                        case_summary[contro_num]['cause'].append(
+                            lines[line_num])
+
             for _, case in enumerate(case_summary):
                 approve = disapprove = 0
                 for match_line in case['cause']:
@@ -737,10 +824,11 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                         if re.search(r'法|条例', basis_match.group()) is not None:
                             case['basis'].append(basis_match.group())
                 case['judgement'] = str(
-                    None if approve + disapprove == 0 else round(approve/(approve+disapprove)))
+                    -1 if approve + disapprove == 0 else round(approve/(approve+disapprove)))
             return case_summary
     except RuntimeError as e:
         print('get_case_summary error:', e)
+        return case_summary
     contro_num = 0
     approve = disapprove = 0
     last_contro = 0
@@ -756,11 +844,11 @@ def get_case_summary(lines: List[str]) -> List[dict]:
         for i in range(contro_num, len(controversies)):
             # 根据争议焦点分段
             matchObj = re.search(
-                '第('+basic[i+1]+'|'+str(i+1)+')个争议焦点', lines[line_num])
+                '第('+basic[(i+1) % 10]+'|'+str(i+1)+')个争议焦点', lines[line_num])
             if similar(lines[line_num], controversies[i]['con']) > 0.8 or matchObj is not None:
-                if i > contro_num:
+                if len(controversies) > i > contro_num:
                     case_summary[contro_num]["controversy"] = controversies[contro_num]['con']
-                    case_summary[contro_num]['judgement'] = str(None if approve +
+                    case_summary[contro_num]['judgement'] = str(-1 if approve +
                                                                 disapprove == 0 else round(approve/(approve+disapprove)))
                     approve = disapprove = 0
                     contro_num = i
@@ -778,7 +866,7 @@ def get_case_summary(lines: List[str]) -> List[dict]:
             break
             # continue
     case_summary[contro_num]["controversy"] = controversies[contro_num]['con']
-    case_summary[contro_num]['judgement'] = str(None if approve +
+    case_summary[contro_num]['judgement'] = str(-1 if approve +
                                                 disapprove == 0 else round(approve/(approve+disapprove)))
     # 增加共同依托法条
     if len(case_summary) > 0:
@@ -800,3 +888,66 @@ def get_case_summary(lines: List[str]) -> List[dict]:
                 if len(con['basis']) == 0:
                     con['basis'] = common_basis
     return case_summary
+
+
+def get_case_summary_controversies_claim(lines: List[str], case_summary: List[str] = [], id: int = 0) -> Tuple[List[dict], int]:
+    lines = lines[-128:]
+    controversies = get_controversies_with_type_v2(lines, 'claim')
+    for controversy in controversies:
+        if '费' in controversy:
+            continue
+        case_summary.append({
+            "controversy": controversy,
+            "is_claim": True,
+            "judgement": "",
+            "cause": [],
+            "basis": []
+        })
+
+    return (case_summary, id)
+
+
+def get_case_summary_controversies_not_claim(lines: List[str], case_summary: List[str] = [], id: int = 0) -> Tuple[List[dict], int]:
+    lines = lines[-128:]
+    controversies = get_controversies_with_type_v2(lines, 'not_claim')
+    for controversy in controversies:
+        if '费' in controversy:
+            continue
+        case_summary.append({
+            "controversy": controversy,
+            "is_claim": False,
+            "judgement": "",
+            "cause": [],
+            "basis": []
+        })
+    return (case_summary, id)
+
+
+def get_case_summary_etc(lines: List[str], case_summary: List[str] = [], id: int = 0) -> Tuple[List[dict], int]:
+    lines = lines[-128:]
+    for contro_num, summary in enumerate(case_summary):
+        instances = [{
+            "con_input": summary['controversy'],
+            "cause_input": line.strip()
+        } for line in lines]
+        results = seq_match_multiple(instances)
+        for line_num, result in enumerate(results):
+            if result > 0.5:
+                case_summary[contro_num]['cause'].append(
+                    lines[line_num])
+
+    for _, case in enumerate(case_summary):
+        approve = disapprove = 0
+        for match_line in case['cause']:
+            appr_match = re.findall(r'予以(支持|认可|采纳)', match_line)
+            disappr_match = re.findall(r'不予?(支持|认可|采纳)', match_line)
+            approve += len(appr_match)
+            disapprove += len(disappr_match)
+            basis_matchs = re.finditer(
+                '《.+?》(第?[〇一二三四五六七八九十百千]+?条、?)*', match_line)
+            for basis_match in basis_matchs:
+                if re.search(r'法|条例', basis_match.group()) is not None:
+                    case['basis'].append(basis_match.group())
+        case['judgement'] = str(
+            -1 if approve + disapprove == 0 else round(approve/(approve+disapprove)))
+    return (case_summary, id)
