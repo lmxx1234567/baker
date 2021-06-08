@@ -1,9 +1,10 @@
 import csv
 import re
 from typing import List, Tuple
-from . import (CON_MARK_CLAIM_MODEL_AVALIABLE,
-               CON_MARK_NOT_CLAIM_MODEL_AVALIABLE, SEQ_MODEL_AVALIABLE, schema,
-               similar)
+# from . import (CON_MARK_CLAIM_MODEL_AVALIABLE,
+#                CON_MARK_NOT_CLAIM_MODEL_AVALIABLE, SEQ_MODEL_AVALIABLE, schema,
+#                similar)
+from . import (SEQ_MODEL_AVALIABLE, schema,similar)
 from .controversy_mark import con_mark_multiple
 from .sequence_match import seq_match_multiple
 from multiprocessing.pool import ThreadPool
@@ -158,7 +159,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
     find = False
     plaintiff_info = []
     Nationality = r'汉族|回族'
-    pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …（）：]'
+    pattern = r'[,\./;\'`\[\]<>\?:"\{\}\~!@#\$%\^&\(\)-=\_\+，。、；‘’【】·！ …：]'
     for line in lines:
         if line == '\n':
             continue
@@ -225,7 +226,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                         })
                 continue
             if len(re.split(r'。', line)) <= 2 and re.search(r'住|地址', line) is not None:
-                tmp_names = re.split(r'[原告：:，,。男女]', line)
+                tmp_names = re.split(r'[原告：:，,。男女（）()]', line)
                 for tmp_name in tmp_names:
                     if tmp_name != '':
                         plaintiff_name = tmp_name
@@ -240,7 +241,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                             "is_company": 1 if re.search(r'公司|中心|机构', plaintiff_name) is not None else 0
                         })
                 continue
-            subline0 = re.split(r'[，、]', line)
+            subline0 = re.split(r'[，、()（）]', line)
             break_it = 0
             for subline in subline0:
                 find_it_der = 0
@@ -337,7 +338,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                     except Exception:
                         is_splite = False
                     if is_splite:
-                        subline = re.split(r'[，：:；。、]', sublines_split)
+                        subline = re.split(r'[，：:；。、（）()]', sublines_split)
                         plaintiff_name = subline[0]
                         if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                             continue
@@ -357,7 +358,7 @@ def get_plaintiff_info_v1(lines: List[str]) -> List[dict]:
                     except Exception:
                         is_splite = False
                     if is_splite:
-                        subline = re.split(r'[，：:；。、]', sublines_split)
+                        subline = re.split(r'[，：:；。、()（）]', sublines_split)
                         plaintiff_name = subline[0]
                         if bool([True for p_info in plaintiff_info if plaintiff_name in p_info.values()]):
                             continue
@@ -449,7 +450,7 @@ def get_defendant_info_v1(lines: List[str]) -> List[dict]:
                         })
                 continue
             if len(re.split(r'。', line)) <= 2 and re.search(r'住|地址', line) is not None:
-                tmp_names = re.split(r'[被告：:，,。男女]', line)
+                tmp_names = re.split(r'[被告：:，,。男女()（）]', line)
                 for tmp_name in tmp_names:
                     if tmp_name != '':
                         defendant_value = tmp_name

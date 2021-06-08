@@ -435,9 +435,9 @@ def _deldup(lines: List[str], injured_list: List[dict]) -> List[dict]:
                     dupname[injure2["injured_name"]] = 0
                     for line in lines:
                         dupname[injure1["injured_name"]
-                                ] += len(re.findall(injure1["injured_name"], line))
+                                ] += len(re.findall(injure1["injured_name"].replace('*', '某'), line))
                         dupname[injure2["injured_name"]
-                                ] += len(re.findall(injure2["injured_name"], line))
+                                ] += len(re.findall(injure2["injured_name"].replace('*', '某'),line))
                     if dupname[injure1["injured_name"]] == dupname[injure1["injured_name"]]:
                         if len(injure1["injured_name"]) >= len(injure2["injured_name"]):
                             tmp_list.pop(j+i+1)
@@ -478,7 +478,8 @@ def _get_injured_name(lines: List[str], plaintiff_info) -> List[dict]:
                     Mayfind = False
                     keyObj = re.search(p, subline)
                     if keyObj is not None:
-                        subline = re.sub(r'[\n\s、]', '', subline)
+                        subline = re.sub(r'[\n\s]', '', subline)
+                        subline = re.sub(r'、', '&', subline)
                         seg_list = pseg.cut(subline, use_paddle=True)
                         Mayfind = True
                         for seg in seg_list:
@@ -495,16 +496,16 @@ def _get_injured_name(lines: List[str], plaintiff_info) -> List[dict]:
                                         injuerd = injuerd + injuerd_withnum
                                 if len(injuerd) > 3 and re.search(r'导?致', injuerd) is not None:
                                     injuerd = re.sub(r'导?致', '', injuerd)
-                                if '原告' in subline and re.search(r'(原告).*[及、和与]', subline) is None and re.search(r'[及、和与].*(原告)', subline) is None:
+                                if '原告' in subline and re.search(r'(原告).*[及&和与]', subline) is None and re.search(r'[及&和与].*(原告)', subline) is None:
                                     break
-                                injuerd = re.split("、", injuerd)
+                                injuerd = re.split("&", injuerd)
                                 for i in injuerd:
+                                    i = re.sub(r'[，：；。（）()]', '', i)
                                     # 如果已经存在则不插入，如果在被告中出现就不插入
                                     if bool([True for i_info in injured_list if i in i_info.values()]) or bool([True for defendant in defendant_info if i in defendant.values()]):
                                         continue
-                                    # if len(i) > 3:
-                                    #     print("---------------------------------------------",
-                                    #           i, "------------------------------------------------")
+                                    if re.search(r'晋A', i):
+                                        continue
                                     injured_info = {'injured_name': '', 'injured_birth': 'null', 'injured_sex': 'null',
                                                     'injured_work': 'null', 'injured_education': 'null', 'injured_resident': 'null', 'injured_marriage': []}
                                     injured_info['injured_name'] = i
@@ -521,6 +522,7 @@ def _get_injured_name(lines: List[str], plaintiff_info) -> List[dict]:
                                                     'injured_work': 'null', 'injured_education': 'null', 'injured_resident': 'null', 'injured_marriage': []}
                                     injured_info['injured_name'] = injuerd
                                     injured_list.append(injured_info)
+                    subline = re.sub(r'&', '、', subline)
     if len(injured_list) > 1:
         _deldup(lines, injured_list)
     # 如果伤者为空，就把原告放进去
