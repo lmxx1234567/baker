@@ -161,14 +161,17 @@ def get_city_class(lines: List[str]) -> Dict:
     jieba.enable_paddle()
     court_name = None
     citylist = []
+    specialcase = r'人民法院|铁路运输法院|海事法院|农垦法院|基层法院'
     for line in lines:  # 提取人民法院名称
         if line == '\n':
             continue
         line = re.sub(r'\s+', '', line)
-        if "人民法院" in line:
+        # if "人民法院" in line:
+        if re.search(specialcase,line) is not None:
             line = re.split(r'[，：；。\s+]', line)
             for subline in line:
-                if "人民法院" in subline:
+                # if "人民法院" in subline:
+                if re.search(specialcase,subline) is not None:
                     subline = re.sub(r'[\n\s]', '', subline)
                     seg_list = pseg.cut(subline, use_paddle=True)
                     for seg in seg_list:
@@ -178,7 +181,8 @@ def get_city_class(lines: List[str]) -> Dict:
                 if court_name is not None:
                     break
         if court_name is not None:  # 进行地市分级
-            city = re.sub(r'(中级|最高)?人民法院', '', court_name)
+            city = re.sub(r'中级|最高|分院', '', court_name)
+            city = re.sub(specialcase, '', city)
             citylist.append(city)
             city_class = cpca.transform(citylist)
             city_class_form = city_class.iloc[0].to_dict()
